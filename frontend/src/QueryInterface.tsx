@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './QueryInterface.css';
+import logo from './logo.svg';
 
 interface QueryResult {
   original_question: string;
@@ -172,10 +173,18 @@ const QueryInterface: React.FC = () => {
       )}
 
       <div className="header">
+        <div className="logo-container">
+          <img src={logo} alt="QueryCraft Logo" className="app-logo" />
+        </div>
         <h1 className="main-title">
           <span className="gradient-text">QueryCraft</span>
         </h1>
         <p className="subtitle">Transform natural language into powerful SQL queries</p>
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+        </div>
       </div>
 
       <div className="main-content">
