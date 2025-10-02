@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './QueryInterface.css';
 import logo from './logo.svg';
+import ElectricBorder from './ElectricBorder';
 
 interface QueryResult {
   original_question: string;
@@ -188,6 +189,7 @@ const QueryInterface: React.FC = () => {
       </div>
 
       <div className="main-content">
+        <ElectricBorder color="#60a5fa" speed={1} chaos={0.5} thickness={2} style={{ borderRadius: 28 }}>
         <div className="query-section glass-card">
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-group">
@@ -249,24 +251,30 @@ const QueryInterface: React.FC = () => {
             </div>
           )}
         </div>
+        </ElectricBorder>
 
         {showSchema && (
-          <div className="schema-section glass-card slide-in">
-            {renderSchema()}
-          </div>
+          <ElectricBorder color="#60a5fa" speed={1} chaos={0.5} thickness={2} style={{ borderRadius: 28 }}>
+            <div className="schema-section glass-card slide-in">
+              {renderSchema()}
+            </div>
+          </ElectricBorder>
         )}
 
         {error && (
-          <div className="error-message glass-card slide-in">
-            <div className="error-icon">⚠</div>
-            <div>
-              <h3>Error</h3>
-              <p>{error}</p>
+          <ElectricBorder color="#ff6b6b" speed={1.2} chaos={0.8} thickness={2} style={{ borderRadius: 20 }}>
+            <div className="error-message glass-card slide-in">
+              <div className="error-icon">⚠</div>
+              <div>
+                <h3>Error</h3>
+                <p>{error}</p>
+              </div>
             </div>
-          </div>
+          </ElectricBorder>
         )}
 
         {result && (
+          <ElectricBorder color="#60a5fa" speed={1} chaos={0.6} thickness={2} style={{ borderRadius: 28 }}>
           <div className="results-section glass-card slide-up">
             <div className="sql-query">
               <h3>
@@ -293,6 +301,7 @@ const QueryInterface: React.FC = () => {
               {renderTable(result.results)}
             </div>
           </div>
+          </ElectricBorder>
         )}
       </div>
     </div>
