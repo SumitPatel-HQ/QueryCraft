@@ -1,29 +1,115 @@
 import re
 import json
-from typing import Dict, List, Any
+import logging
+from typing import Dict, List, Any, Optional
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class NLToSQLProcessor:
-    def __init__(self, schema: Dict[str, List[Dict]]):
+    def __init__(self, schema: Dict[str, List[Dict]], introspector=None):
         self.schema = schema
         self.table_names = list(schema.keys())
+        self.introspector = introspector
+        self.llm_generator = None
         
+        # Try to initialize LLM generator
+        try:
+            from llm_sql_generator import LLMSQLGenerator  # type: ignore
+            self.llm_generator = LLMSQLGenerator()
+            logger.info("LLM SQL Generator initialized successfully")
+        except Exception as e:
+            logger.warning(f"LLM Generator not available: {e}. Will use pattern-matching only.")
+    
     def process_query(self, question: str) -> Dict[str, Any]:
-        """Convert natural language to SQL query"""
+        """
+        Convert natural language to SQL query using hybrid approach:
+        1. Try LLM generation first (if available)
+        2. Fall back to pattern-matching if LLM fails
+        
+        Returns:
+            Dictionary containing:
+                - sql_query: The generated SQL
+                - explanation: Human-readable explanation
+                - generation_method: "llm" or "fallback"
+                - confidence: Confidence score (0-100)
+                - tables_used: List of tables referenced
+        """
+        # Try LLM approach first
+        if self.llm_generator and self.introspector:
+            try:
+                logger.info(f"Attempting LLM generation for: {question}")
+                
+                # Get schema context for LLM
+                schema_context = self.introspector.format_schema_for_llm()
+                schema_dict = self.introspector.get_llm_context()
+                
+                # Generate SQL with LLM
+                result = self.llm_generator.generate_sql_with_llm(question, schema_context)
+                
+                if result["success"] and result["sql"]:
+                    sql = result["sql"]
+                    
+                    # Validate SQL syntax
+                    if self.llm_generator.validate_sql_syntax(sql):
+                        # Generate explanation
+                        explanation = self.llm_generator.generate_query_explanation(sql, question)
+                        
+                        # Calculate confidence score
+                        confidence = self.llm_generator.calculate_confidence_score(sql, schema_dict)
+                        
+                        # Extract tables used
+                        tables_used = self.llm_generator.extract_tables_from_sql(sql)
+                        
+                        logger.info(f"LLM generation successful. Confidence: {confidence}")
+                        
+                        return {
+                            "sql_query": sql,
+                            "explanation": explanation,
+                            "generation_method": "llm",
+                            "confidence": confidence,
+                            "tables_used": tables_used,
+                            "tokens_used": result.get("tokens_used", 0)
+                        }
+                    else:
+                        logger.warning("LLM generated invalid SQL syntax, falling back to pattern-matching")
+                else:
+                    logger.warning(f"LLM generation failed: {result.get('error')}, falling back to pattern-matching")
+                    
+            except Exception as e:
+                logger.error(f"Error in LLM generation: {str(e)}, falling back to pattern-matching")
+        
+        # Fall back to pattern-matching
+        logger.info("Using pattern-matching approach")
+        return self._pattern_matching_query(question)
+    
+    def _pattern_matching_query(self, question: str) -> Dict[str, Any]:
+        """Original pattern-matching logic with enhanced response format"""
         question_lower = question.lower()
         
         # Basic pattern matching for common queries
         if any(word in question_lower for word in ['top', 'highest', 'most', 'best']):
-            return self._handle_top_queries(question, question_lower)
+            result = self._handle_top_queries(question, question_lower)
         elif 'count' in question_lower or 'how many' in question_lower:
-            return self._handle_count_queries(question, question_lower)
+            result = self._handle_count_queries(question, question_lower)
         elif any(word in question_lower for word in ['average', 'avg', 'mean']):
-            return self._handle_average_queries(question, question_lower)
+            result = self._handle_average_queries(question, question_lower)
         elif any(word in question_lower for word in ['total', 'sum']):
-            return self._handle_sum_queries(question, question_lower)
+            result = self._handle_sum_queries(question, question_lower)
         elif any(word in question_lower for word in ['list', 'show', 'all', 'get']):
-            return self._handle_list_queries(question, question_lower)
+            result = self._handle_list_queries(question, question_lower)
         else:
-            return self._handle_generic_query(question, question_lower)
+            result = self._handle_generic_query(question, question_lower)
+        
+        # Enhance result with additional metadata
+        sql = result["sql_query"]
+        result["generation_method"] = "fallback"
+        result["confidence"] = self._calculate_pattern_confidence(question_lower)
+        result["tables_used"] = self._extract_tables_from_sql(sql)
+        result["tokens_used"] = 0
+        
+        return result
     
     def _identify_relevant_tables(self, question_lower: str) -> List[str]:
         """Identify which tables are relevant to the query"""
@@ -183,3 +269,32 @@ class NLToSQLProcessor:
             "sql_query": "SELECT customer_name, email FROM customers LIMIT 10",
             "explanation": "This is a default query showing customer information. Please try rephrasing your question for better results."
         }
+    
+    def _calculate_pattern_confidence(self, question_lower: str) -> int:
+        """Calculate confidence score for pattern-matching results"""
+        # Simple heuristic based on keyword matches
+        high_confidence_patterns = ['count', 'how many', 'total', 'sum', 'average', 'avg']
+        medium_confidence_patterns = ['top', 'list', 'show', 'all']
+        
+        if any(pattern in question_lower for pattern in high_confidence_patterns):
+            return 75
+        elif any(pattern in question_lower for pattern in medium_confidence_patterns):
+            return 65
+        else:
+            return 50
+    
+    def _extract_tables_from_sql(self, sql: str) -> List[str]:
+        """Extract table names from SQL query"""
+        tables = []
+        sql_upper = sql.upper()
+        
+        # Find tables in FROM clause
+        from_matches = re.findall(r'FROM\s+(\w+)', sql_upper)
+        tables.extend(from_matches)
+        
+        # Find tables in JOIN clauses
+        join_matches = re.findall(r'JOIN\s+(\w+)', sql_upper)
+        tables.extend(join_matches)
+        
+        # Return unique table names
+        return list(set([t.lower() for t in tables]))

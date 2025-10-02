@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+from typing import Dict, List, Any
 
 class SQLiteIntrospector:
     def __init__(self, db_path):
@@ -37,6 +38,117 @@ class SQLiteIntrospector:
             return schema
         finally:
             self.close()
+
+    def get_llm_context(self) -> Dict[str, Any]:
+        """
+        Generate comprehensive schema context for LLM prompt.
+        Returns detailed information about tables, columns, relationships, and sample data.
+        """
+        try:
+            self.connect()
+            cur = self.conn.cursor()
+            
+            # Get all table names
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [row[0] for row in cur.fetchall()]
+            
+            llm_context = {
+                "database_type": "SQLite",
+                "tables": {}
+            }
+            
+            for table in tables:
+                table_info = {
+                    "columns": [],
+                    "primary_keys": [],
+                    "foreign_keys": [],
+                    "row_count": 0,
+                    "sample_values": {}
+                }
+                
+                # Get column information
+                cur.execute(f"PRAGMA table_info({table});")
+                columns_info = cur.fetchall()
+                
+                for col in columns_info:
+                    col_name = col[1]
+                    col_type = col[2]
+                    is_pk = bool(col[5])
+                    
+                    table_info["columns"].append({
+                        "name": col_name,
+                        "type": col_type,
+                        "nullable": not col[3],
+                        "primary_key": is_pk
+                    })
+                    
+                    if is_pk:
+                        table_info["primary_keys"].append(col_name)
+                    
+                    # Get sample values for this column (first 3 unique values)
+                    try:
+                        cur.execute(f"SELECT DISTINCT {col_name} FROM {table} WHERE {col_name} IS NOT NULL LIMIT 3")
+                        samples = [row[0] for row in cur.fetchall()]
+                        if samples:
+                            table_info["sample_values"][col_name] = samples
+                    except:
+                        pass
+                
+                # Get foreign key information
+                cur.execute(f"PRAGMA foreign_key_list({table});")
+                fks = cur.fetchall()
+                for fk in fks:
+                    table_info["foreign_keys"].append({
+                        "column": fk[3],
+                        "references_table": fk[2],
+                        "references_column": fk[4]
+                    })
+                
+                # Get row count
+                cur.execute(f"SELECT COUNT(*) FROM {table}")
+                table_info["row_count"] = cur.fetchone()[0]
+                
+                llm_context["tables"][table] = table_info
+            
+            cur.close()
+            return llm_context
+        finally:
+            self.close()
+    
+    def format_schema_for_llm(self) -> str:
+        """
+        Format schema context as a human-readable string for LLM prompt.
+        """
+        context = self.get_llm_context()
+        
+        schema_text = f"Database Type: {context['database_type']}\n\n"
+        schema_text += "Tables and Schema:\n"
+        schema_text += "=" * 80 + "\n\n"
+        
+        for table_name, table_info in context["tables"].items():
+            schema_text += f"Table: {table_name}\n"
+            schema_text += f"Row Count: {table_info['row_count']}\n"
+            schema_text += "Columns:\n"
+            
+            for col in table_info["columns"]:
+                pk_marker = " [PRIMARY KEY]" if col["primary_key"] else ""
+                nullable = "NULL" if col["nullable"] else "NOT NULL"
+                schema_text += f"  - {col['name']} ({col['type']}) {nullable}{pk_marker}\n"
+                
+                # Add sample values if available
+                if col["name"] in table_info["sample_values"]:
+                    samples = table_info["sample_values"][col["name"]]
+                    schema_text += f"    Sample values: {samples}\n"
+            
+            # Add foreign keys
+            if table_info["foreign_keys"]:
+                schema_text += "Foreign Keys:\n"
+                for fk in table_info["foreign_keys"]:
+                    schema_text += f"  - {fk['column']} -> {fk['references_table']}.{fk['references_column']}\n"
+            
+            schema_text += "\n" + "-" * 80 + "\n\n"
+        
+        return schema_text
 
     def execute_query(self, query):
         """Execute a SQL query and return results"""
