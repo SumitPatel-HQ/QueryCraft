@@ -25,8 +25,15 @@ const QueryInterface: React.FC = () => {
   const [schema, setSchema] = useState<SchemaTable>({});
   const [sampleQueries, setSampleQueries] = useState<string[]>([]);
   const [showSchema, setShowSchema] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
 
   const API_BASE = 'http://localhost:8000';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Fetch schema and sample queries on component mount
@@ -77,8 +84,14 @@ const QueryInterface: React.FC = () => {
 
       const data = await response.json();
       setResult(data);
+      setNotificationType('success');
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setNotificationType('error');
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
     } finally {
       setLoading(false);
     }
@@ -151,38 +164,60 @@ const QueryInterface: React.FC = () => {
   };
 
   return (
-    <div className="query-interface">
+    <div className={`query-interface ${mounted ? 'mounted' : ''}`}>
+      {showNotification && (
+        <div className={`notification ${notificationType} ${showNotification ? 'show' : ''}`}>
+          {notificationType === 'success' ? '✓ Query executed successfully!' : '✗ Error processing query'}
+        </div>
+      )}
+
       <div className="header">
-        <h1>QueryCraft - Natural Language to SQL</h1>
-        <p>Ask questions about your data in plain English!</p>
+        <h1 className="main-title">
+          <span className="gradient-text">QueryCraft</span>
+        </h1>
+        <p className="subtitle">Transform natural language into powerful SQL queries</p>
       </div>
 
       <div className="main-content">
-        <div className="query-section">
+        <div className="query-section glass-card">
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-group">
-              <textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ask a question about your data (e.g., 'What are the top 10 customers by spending?')"
-                className="question-input"
-                rows={3}
-              />
-              <button 
-                type="submit" 
+              <div className="input-wrapper">
+                <textarea
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="Ask a question about your data (e.g., 'What are the top 10 customers by spending?')"
+                  className="question-input"
+                  rows={3}
+                />
+                <div className="input-glow"></div>
+              </div>
+              <button
+                type="submit"
                 disabled={loading || !question.trim()}
                 className="submit-button"
               >
-                {loading ? 'Processing...' : 'Submit Query'}
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <span className="button-icon">✨</span>
+                    Generate SQL
+                  </>
+                )}
               </button>
             </div>
           </form>
 
           <div className="controls">
-            <button 
+            <button
               onClick={() => setShowSchema(!showSchema)}
               className="schema-toggle"
             >
+              <span className="button-icon">{showSchema ? '▼' : '▶'}</span>
               {showSchema ? 'Hide Schema' : 'Show Schema'}
             </button>
           </div>
@@ -196,6 +231,7 @@ const QueryInterface: React.FC = () => {
                     key={index}
                     onClick={() => handleSampleQueryClick(query)}
                     className="sample-button"
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     {query}
                   </button>
@@ -206,32 +242,45 @@ const QueryInterface: React.FC = () => {
         </div>
 
         {showSchema && (
-          <div className="schema-section">
+          <div className="schema-section glass-card slide-in">
             {renderSchema()}
           </div>
         )}
 
         {error && (
-          <div className="error-message">
-            <h3>Error:</h3>
-            <p>{error}</p>
+          <div className="error-message glass-card slide-in">
+            <div className="error-icon">⚠</div>
+            <div>
+              <h3>Error</h3>
+              <p>{error}</p>
+            </div>
           </div>
         )}
 
         {result && (
-          <div className="results-section">
+          <div className="results-section glass-card slide-up">
             <div className="sql-query">
-              <h3>Generated SQL Query:</h3>
+              <h3>
+                <span className="section-icon">💾</span>
+                Generated SQL Query
+              </h3>
               <pre className="sql-code">{result.sql_query}</pre>
             </div>
 
             <div className="explanation">
-              <h3>Explanation:</h3>
+              <h3>
+                <span className="section-icon">💡</span>
+                Explanation
+              </h3>
               <p>{result.explanation}</p>
             </div>
 
             <div className="results">
-              <h3>Results ({result.results.length} rows):</h3>
+              <h3>
+                <span className="section-icon">📊</span>
+                Results
+                <span className="result-count">{result.results.length} rows</span>
+              </h3>
               {renderTable(result.results)}
             </div>
           </div>
