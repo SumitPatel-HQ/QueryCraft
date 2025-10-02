@@ -6,10 +6,17 @@ import sys
 import os
 import json
 
-# Add core_ai_services to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../core_ai_services')))
-from sqlite_introspection import SQLiteIntrospector, create_sample_database
-from nl_to_sql import NLToSQLProcessor
+# Add core_ai_services to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+core_ai_path = os.path.join(parent_dir, 'core_ai_services')
+
+if os.path.exists(core_ai_path) and core_ai_path not in sys.path:
+    sys.path.insert(0, core_ai_path)
+
+# Import the required modules
+from sqlite_introspection import SQLiteIntrospector, create_sample_database  # type: ignore
+from nl_to_sql import NLToSQLProcessor  # type: ignore
 
 app = FastAPI(
     title="QueryCraft API",
