@@ -8,6 +8,7 @@ interface QueryResult {
   sql_query: string;
   explanation: string;
   results: any[];
+  columns?: string[];  // Column names even for empty results
   confidence?: number;
   generation_method?: string;
   tables_used?: string[];
@@ -25,17 +26,7 @@ interface SchemaTable {
   }>;
 }
 
-interface SampleQuery {
-  question: string;
-  description: string;
-  difficulty: string;
-}
-
-interface SampleQueries {
-  easy: SampleQuery[];
-  medium: SampleQuery[];
-  advanced: SampleQuery[];
-}
+// Sample queries feature removed
 
 interface ERDData {
   tables: any[];
@@ -43,13 +34,17 @@ interface ERDData {
   mermaid_diagram: string;
 }
 
-const QueryInterface: React.FC = () => {
+interface QueryInterfaceProps {
+  databaseId?: number;
+}
+
+const QueryInterface: React.FC<QueryInterfaceProps> = ({ databaseId }) => {
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [schema, setSchema] = useState<SchemaTable>({});
-  const [sampleQueries, setSampleQueries] = useState<SampleQueries | null>(null);
+  // sample queries feature removed
   const [showSchema, setShowSchema] = useState(false);
   const [showWhyQuery, setShowWhyQuery] = useState(false);
   const [showERD, setShowERD] = useState(false);
@@ -102,15 +97,19 @@ const QueryInterface: React.FC = () => {
   }, [showERD, erdData]);
 
   useEffect(() => {
-    // Fetch schema and sample queries on component mount
+    // Fetch schema and ERD on component mount
     fetchSchema();
-    fetchSampleQueries();
     fetchERD();
-  }, []);
+  }, [databaseId]);
 
   const fetchSchema = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/schema`);
+      // Use database-specific endpoint if databaseId is provided
+      const endpoint = databaseId
+        ? `${API_BASE}/api/v1/databases/${databaseId}/schema`
+        : `${API_BASE}/api/v1/schema`;
+      
+      const response = await fetch(endpoint);
       const data = await response.json();
       setSchema(data.schema);
     } catch (err) {
@@ -118,15 +117,7 @@ const QueryInterface: React.FC = () => {
     }
   };
 
-  const fetchSampleQueries = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/sample-queries`);
-      const data = await response.json();
-      setSampleQueries(data.sample_queries);
-    } catch (err) {
-      console.error('Failed to fetch sample queries:', err);
-    }
-  };
+  // sample queries removed
 
   const fetchERD = async () => {
     try {
@@ -159,7 +150,12 @@ const QueryInterface: React.FC = () => {
     setResult(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/v1/query`, {
+      // Use database-specific endpoint if databaseId is provided
+      const endpoint = databaseId 
+        ? `${API_BASE}/api/v1/databases/${databaseId}/query`
+        : `${API_BASE}/api/v1/query`;
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,23 +176,46 @@ const QueryInterface: React.FC = () => {
     }
   };
 
-  const handleSampleQueryClick = (sampleQuery: string) => {
-    setQuestion(sampleQuery);
-  };
+  // sample queries removed
 
-  const renderTable = (data: any[]) => {
+  const renderTable = (data: any[], columns?: string[]) => {
+    // If we have column names but no data, show empty table structure
+    if ((!data || data.length === 0) && columns && columns.length > 0) {
+      return (
+        <div className="table-container">
+          <table className="results-table">
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px', fontStyle: 'italic', color: '#888' }}>
+                  No data found matching your query criteria.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+    
+    // If truly no results and no columns, show simple message
     if (!data || data.length === 0) {
       return <p>No results found.</p>;
     }
 
-    const columns = Object.keys(data[0]);
+    const cols = columns || Object.keys(data[0]);
 
     return (
       <div className="table-container">
         <table className="results-table">
           <thead>
             <tr>
-              {columns.map((column) => (
+              {cols.map((column) => (
                 <th key={column}>{column}</th>
               ))}
             </tr>
@@ -204,7 +223,7 @@ const QueryInterface: React.FC = () => {
           <tbody>
             {data.map((row, index) => (
               <tr key={index}>
-                {columns.map((column) => (
+                {cols.map((column) => (
                   <td key={column}>{String(row[column])}</td>
                 ))}
               </tr>
@@ -289,62 +308,7 @@ const QueryInterface: React.FC = () => {
             </button>
           </div>
 
-          {sampleQueries && (
-            <div className="sample-queries">
-              <h3>📝 Try these sample questions:</h3>
-              
-              <div className="difficulty-section">
-                <h4 className="difficulty-easy">🟢 Easy Queries</h4>
-                <p className="difficulty-desc">Simple questions to get started</p>
-                <div className="sample-buttons">
-                  {sampleQueries.easy.map((query, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSampleQueryClick(query.question)}
-                      className="sample-button easy"
-                      title={query.description}
-                    >
-                      {query.question}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="difficulty-section">
-                <h4 className="difficulty-medium">🟡 Medium Queries</h4>
-                <p className="difficulty-desc">Multi-table joins and aggregations</p>
-                <div className="sample-buttons">
-                  {sampleQueries.medium.map((query, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSampleQueryClick(query.question)}
-                      className="sample-button medium"
-                      title={query.description}
-                    >
-                      {query.question}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="difficulty-section">
-                <h4 className="difficulty-advanced">🔴 Advanced Queries</h4>
-                <p className="difficulty-desc">Complex business analytics and insights</p>
-                <div className="sample-buttons">
-                  {sampleQueries.advanced.map((query, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSampleQueryClick(query.question)}
-                      className="sample-button advanced"
-                      title={query.description}
-                    >
-                      {query.question}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Sample queries removed */}
         </div>
 
         {showSchema && (
@@ -497,10 +461,10 @@ const QueryInterface: React.FC = () => {
 
             <div className="results">
               <h3>Results ({result.results.length} rows):</h3>
-              {renderTable(result.results)}
+              {renderTable(result.results, result.columns)}
             </div>
 
-            {/* Chart Visualization */}
+            {/* Chart Visualization - only show if we have actual data */}
             {result.results.length > 0 && (
               <ChartVisualization 
                 data={result.results} 

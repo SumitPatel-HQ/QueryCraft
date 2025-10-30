@@ -97,34 +97,7 @@
   background: #7f8c8d;
 }
 
-.sample-queries {
-  margin-top: 20px;
-}
-
-.sample-queries h3 {
-  color: #2c3e50;
-  margin-bottom: 15px;
-}
-
-.sample-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.sample-button {
-  padding: 10px 15px;
-  background: #ecf0f1;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  font-size: 14px;
-}
-
-.sample-button:hover {
-  background: #d5dbdb;
-}
+/* sample queries styles removed */
 
 .schema-section {
   background: white;

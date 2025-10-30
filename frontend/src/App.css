@@ -1,4 +1,11 @@
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  background: linear-gradient(135deg, #0f1419 0%, #1a1d2e 100%);
+}
+
+.main-content {
+  margin-left: 250px;
+  flex: 1;
+  min-height: 100vh;
 }

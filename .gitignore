@@ -44,6 +44,10 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
+# Uploaded databases
+backend_api/uploads/
+!backend_api/uploads/.gitkeep
+
 # Logs
 *.log
 logs/

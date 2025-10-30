@@ -1,19 +1,48 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: querycraft-postgres
+    environment:
+      POSTGRES_USER: querycraft_user
+      POSTGRES_PASSWORD: querycraft_pass
+      POSTGRES_DB: querycraft_main
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend_api/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - querycraft-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U querycraft_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: ./backend_api
+    container_name: querycraft-backend
     ports:
       - "8000:8000"
     volumes:
       - ./core_ai_services:/app/core_ai_services
+      - ./backend_api:/app
+      - uploaded_databases:/app/uploads
     environment:
       - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://querycraft_user:querycraft_pass@postgres:5432/querycraft_main
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - querycraft-network
 
   frontend:
     build: ./frontend
+    container_name: querycraft-frontend
     ports:
       - "3000:80"
     depends_on:
@@ -24,3 +53,9 @@ services:
 networks:
   querycraft-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  uploaded_databases:
+    driver: local
