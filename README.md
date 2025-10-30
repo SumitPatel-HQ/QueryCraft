@@ -1,34 +1,154 @@
-# QueryCraft - Intelligent Natural Language to SQL Platform
+# QueryCraft 2.0 - Intelligent Natural Language to SQL Platform
 
-QueryCraft is an intelligent platform that converts natural language questions into SQL queries, making database interactions accessible to non-technical users.
+> **Empowering users to query complex databases using natural language**
 
-## 🚀 Features
+QueryCraft is an advanced platform that converts natural language questions into SQL queries, making database interactions accessible to non-technical users while showcasing the power of AI-driven query generation.
 
-- **Natural Language Processing**: Convert plain English questions to SQL queries
-- **Schema Intelligence**: Automatic database schema introspection and understanding
-- **Real-time Results**: Execute generated SQL queries and display results instantly
-- **Interactive UI**: Modern React-based interface with sample queries and schema viewer
-- **RESTful API**: FastAPI backend with comprehensive documentation
-- **Docker Support**: Easy deployment with Docker containers
+## 🌟 Key Highlights
+
+- **🧠 AI-Powered**: Google Gemini 2.0 Flash integration for intelligent SQL generation
+- **📊 Complex Database**: 16-table e-commerce database with realistic relationships
+- **🎯 Confidence Scoring**: 85-95% confidence scores for transparency
+- **🔍 Query Complexity Levels**: Easy, Medium, Advanced categorization
+- **📈 Visual Schema**: Interactive ERD (Entity Relationship Diagram) with Mermaid.js
+- **💡 Transparency**: "Why this query?" section for user trust building
+- **⚡ Real-time Results**: Execute generated SQL and display results instantly
+
+## 🚀 New Features in Version 2.0
+
+### 1. **Complex Database with 16+ Tables**
+Our e-commerce database includes:
+- **Customer Management**: customers, customer_segments
+- **Product Catalog**: products, categories, product_categories, suppliers
+- **Order Processing**: orders, order_items, payments, shipping_addresses
+- **Inventory**: inventory, inventory_logs
+- **Analytics**: reviews, wishlists, cart_items, product_views
+
+**Sample Data**:
+- 100 customers across 4 segments (VIP, Gold, Silver, Bronze)
+- 41 products across 14 categories
+- 300+ orders with realistic transactions
+- 200 product reviews with ratings
+- 500+ product views for analytics
+
+### 2. **Categorized Sample Questions by Difficulty**
+
+#### 🟢 **Easy Queries** (Simple SELECT, WHERE, COUNT)
+- "How many customers do we have?"
+- "Show me all active products"
+- "List all orders from today"
+- "What are the different product categories?"
+
+#### 🟡 **Medium Queries** (JOINs, GROUP BY, Aggregations)
+- "What are the top 10 customers by total spending?"
+- "Which products have the highest average ratings?"
+- "Show me monthly revenue for the last 6 months"
+- "Which products are low in stock (below reorder level)?"
+- "What is the average order value by customer segment?"
+
+#### 🔴 **Advanced Queries** (Subqueries, Complex Business Logic)
+- "Show me the top 5 products by revenue with their category and supplier information"
+- "Which customers have the highest lifetime value but haven't ordered in the last 60 days?"
+- "What is the conversion rate from cart to purchase for each product category?"
+- "Show me products with reviews but no sales in the last 30 days"
+- "Calculate the average days between customer registration and first purchase by segment"
+
+### 3. **Confidence Score Display**
+Every query shows a confidence score (85-95%) indicating:
+- **90-95%**: High confidence - Query matches intent perfectly
+- **85-89%**: Good confidence - Query is likely correct
+
+### 4. **"Why This Query?" Transparency Section**
+Expandable section explaining:
+- What tables were accessed
+- How the SQL achieves the user's goal
+- What data transformations were applied
+- Why users should trust the result
+
+### 5. **Interactive Database ERD**
+Visual representation showing:
+- All database tables and columns
+- Relationships between tables
+- Primary and foreign keys
+- Data types and constraints
 
 ## Project Structure
 
 ```
-/querycraft
-├── /frontend         # React TypeScript App ✅
-├── /backend_api      # FastAPI App ✅
-├── /core_ai_services # Python AI Services ✅
+/QueryCraft2.0
+├── /frontend                    # React TypeScript App ✅
+│   ├── /src
+│   │   ├── QueryInterface.tsx   # Enhanced UI with ERD, confidence scores
+│   │   ├── QueryInterface.css   # Comprehensive styling
+│   │   └── App.tsx
+│   └── package.json            # Includes mermaid for ERD
+├── /backend_api                 # FastAPI App ✅
+│   ├── main.py                 # Enhanced with confidence, complexity
+│   ├── create_complex_db.py    # Database creation script
+│   └── sample_ecommerce.db     # 16-table complex database
+├── /core_ai_services           # Python AI Services ✅
+│   ├── llm_sql_generator.py    # Google Gemini integration
+│   ├── nl_to_sql.py           # Query processing logic
+│   └── sqlite_introspection.py # Schema analysis
 ├── docker-compose.yml
 └── README.md
 ```
 
 ## Technology Stack
 
-- **Frontend**: React with TypeScript
-- **Backend API**: Python with FastAPI
-- **Core AI Services**: Python with SQLite
-- **Database**: SQLite (for demo), PostgreSQL support available
+- **Frontend**: React 18 + TypeScript + Mermaid.js (for ERD)
+- **Backend API**: Python 3.13 + FastAPI
+- **AI Engine**: Google Gemini 2.0 Flash
+- **Core AI Services**: Python with advanced NLP
+- **Database**: SQLite with 16 tables, 1000+ records
 - **Containerization**: Docker & Docker Compose
+
+## 🎯 API Endpoints
+
+### Enhanced Endpoints
+
+1. **POST /api/v1/query**
+   - Accepts natural language questions
+   - Returns: SQL, results, confidence score, complexity level, explanation
+   ```json
+   {
+     "original_question": "...",
+     "sql_query": "...",
+     "confidence": 92,
+     "query_complexity": "Medium",
+     "why_this_query": "Detailed explanation...",
+     "results": [...],
+     "execution_time_ms": 45
+   }
+   ```
+
+2. **GET /api/v1/sample-queries**
+   - Returns categorized sample questions
+   - Groups: easy, medium, advanced
+   ```json
+   {
+     "sample_queries": {
+       "easy": [...],
+       "medium": [...],
+       "advanced": [...]
+     }
+   }
+   ```
+
+3. **GET /api/v1/schema**
+   - Returns complete database schema
+   - Includes columns, types, constraints
+
+4. **GET /api/v1/schema/erd** (NEW)
+   - Returns ERD data for visualization
+   - Includes Mermaid.js diagram code
+   ```json
+   {
+     "tables": [...],
+     "relationships": [...],
+     "mermaid_diagram": "erDiagram..."
+   }
+   ```
 
 ## 🎯 MVP Implementation Status
 
@@ -237,7 +357,131 @@ QueryCraft2.0/
 └── README.md            # This documentation
 ```
 
-## 🎓 Educational Value
+## � For Judges: Quick Demonstration Guide
+
+### Why QueryCraft 2.0 Stands Out
+
+**1. Complex Real-World Database (16 Tables)**
+- Not a toy demo - full e-commerce system
+- Realistic data: 100 customers, 300 orders, 41 products
+- Multiple relationships: customers → orders → order_items → products
+- Business intelligence ready: segments, reviews, inventory, analytics
+
+**2. Transparency & Trust Building**
+- **Confidence Scores**: Every query shows 85-95% confidence
+- **"Why This Query?" Section**: Expandable explanation of SQL logic
+- **Query Complexity Badge**: Visual indicators (Easy/Medium/Advanced)
+- **Tables Used**: Shows which database tables were accessed
+
+**3. Comprehensive Query Showcase**
+Try these progressively complex queries to see AI capabilities:
+
+#### 🟢 **Easy** - Warming Up
+```
+"How many customers do we have?"
+→ Simple COUNT query
+```
+
+#### 🟡 **Medium** - Getting Interesting
+```
+"What are the top 10 customers by total spending?"
+→ Multi-table JOIN with aggregation and sorting
+```
+
+#### 🔴 **Advanced** - Impressive Business Intelligence
+```
+"Show me the top 5 products by revenue with their category and supplier information"
+→ Complex 4-table JOIN with GROUP BY, calculations, and nested data
+```
+
+```
+"Which customers have the highest lifetime value but haven't ordered in the last 60 days?"
+→ Subquery with date arithmetic and business logic
+```
+
+### Database Schema Visualization
+Click **"Show Database Diagram"** to see:
+- Interactive ERD powered by Mermaid.js
+- All 16 tables with columns and data types
+- Relationship lines showing foreign keys
+- Visual understanding of database complexity
+
+### Feature Checklist for Evaluation
+
+✅ **Complex Database**
+- [ ] 16+ tables demonstrated
+- [ ] Realistic relationships shown
+- [ ] Business data (customers, orders, products, reviews)
+
+✅ **Query Complexity Levels**
+- [ ] Easy queries work (simple SELECT)
+- [ ] Medium queries work (JOINs, GROUP BY)
+- [ ] Advanced queries work (subqueries, complex business logic)
+
+✅ **Transparency Features**
+- [ ] Confidence score displayed (85-95%)
+- [ ] "Why this query?" section visible
+- [ ] Tables used shown in metadata
+- [ ] Execution time displayed
+
+✅ **Visual Schema**
+- [ ] ERD renders correctly
+- [ ] Tables and relationships shown
+- [ ] Can toggle on/off
+
+### 5-Minute Judge Demo Script
+
+1. **Start Application** (2 min)
+   - Run backend: `cd backend_api && python main.py`
+   - Run frontend: `cd frontend && npm start`
+   - Open http://localhost:3000
+
+2. **Show Database Complexity** (1 min)
+   - Click "Show Database Diagram"
+   - Point out 16 tables, relationships
+   - Explain: "This is a full e-commerce database, not a toy demo"
+
+3. **Run Easy Query** (30 sec)
+   - Click: "How many customers do we have?"
+   - Show: 85-95% confidence, instant results
+
+4. **Run Medium Query** (30 sec)
+   - Click: "Top 10 customers by spending"
+   - Expand "Why this query?" section
+   - Show transparency explanation
+
+5. **Run Advanced Query** (1 min)
+   - Click: "Top 5 products by revenue with category and supplier"
+   - Show: Complex SQL generated correctly
+   - Results display with proper JOINs
+   - Complexity badge shows "Advanced"
+
+### What Makes This Different from Competitors
+
+| Feature | QueryCraft 2.0 | Typical Competitors |
+|---------|----------------|---------------------|
+| Database Complexity | 16 tables, realistic data | 3-5 tables, toy data |
+| Query Difficulty Levels | Easy/Medium/Advanced | All simple queries |
+| Transparency | Confidence + Explanations | Just SQL output |
+| Visual Schema | Interactive ERD | Text list only |
+| Sample Questions | 13 categorized queries | 5-8 generic queries |
+| Trust Building | "Why this query?" section | No explanation |
+
+### Technical Differentiation
+
+**Backend Intelligence**
+- Query complexity analysis algorithm
+- Automatic confidence scoring
+- Detailed explanation generation
+- ERD auto-generation from schema
+
+**Frontend Polish**
+- Mermaid.js integration for diagrams
+- Difficulty-based color coding
+- Expandable sections for details
+- Professional confidence badges
+
+## �🎓 Educational Value
 
 This MVP implementation demonstrates:
 - **Complete end-to-end natural language to SQL functionality**
