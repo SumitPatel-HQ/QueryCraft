@@ -44,11 +44,41 @@ class SchemaIntrospector:
         """
         Extract schema from SQLite database
         
-        Uses sqlite_introspection module for compatibility
+        Uses builtin PRAGMA queries to avoid external dependency
         """
-        from sqlite_introspection import SQLiteIntrospector
-        introspector = SQLiteIntrospector(file_path)
-        return introspector.get_schema_details()
+        import sqlite3
+
+        schema: Dict[str, List[Dict[str, Any]]] = {}
+        conn = sqlite3.connect(file_path)
+        try:
+            cursor = conn.cursor()
+            # List user tables (exclude SQLite internal tables)
+            cursor.execute(
+                """
+                SELECT name FROM sqlite_master
+                WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+                ORDER BY name
+                """
+            )
+            tables = [row[0] for row in cursor.fetchall()]
+
+            for table_name in tables:
+                cursor.execute(f"PRAGMA table_info('{table_name.replace("'", "''")}')")
+                columns = cursor.fetchall()
+                # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+                schema[table_name] = [
+                    {
+                        "name": col[1],
+                        "type": col[2],
+                        "nullable": (col[3] == 0),
+                        "primary_key": (col[5] > 0),
+                    }
+                    for col in columns
+                ]
+        finally:
+            conn.close()
+
+        return schema
     
     @staticmethod
     def _get_postgres_schema(connection_string: str) -> Dict[str, List[Dict[str, Any]]]:

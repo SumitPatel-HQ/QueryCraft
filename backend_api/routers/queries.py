@@ -93,7 +93,8 @@ async def query_database(database_id: int, request: QueryRequest):
             db_introspector = None
             if database.db_type == 'sqlite' and database.file_path:
                 try:
-                    from sqlite_introspection import SQLiteIntrospector
+                    # Use the packaged schema introspector (no external dependency)
+                    from schema_introspection import SQLiteIntrospector
                     db_introspector = SQLiteIntrospector(database.file_path)
                     logger.info(f"Created introspector for SQLite database: {database.name}")
                 except Exception as e:
