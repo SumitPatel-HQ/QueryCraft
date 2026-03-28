@@ -1,12 +1,8 @@
 "use client";
 
-
-"use client";
-
 import React from "react";
 import { cn } from "../../lib/utils";
 import { motion } from "framer-motion";
-
 interface BorderBeamProps {
   /**
    * The size of the border beam.
@@ -31,7 +27,7 @@ interface BorderBeamProps {
   /**
    * The motion transition of the border beam.
    */
-  transition?: any;
+  transition?: React.ComponentProps<typeof motion.div>["transition"];
   /**
    * The class name of the border beam.
    */
@@ -92,19 +88,23 @@ export const BorderBeam = ({
   speedMultiplier = 1,
 }: BorderBeamProps) => {
   // Calculate actual duration based on speed multiplier
-  const actualDuration = speedMultiplier ? duration / speedMultiplier : duration;
-  
+  const actualDuration = speedMultiplier
+    ? duration / speedMultiplier
+    : duration;
+
   // Generate box shadow for glow effect
-  const glowEffect = glowIntensity > 0 
-    ? `0 0 ${glowIntensity * 5}px ${glowIntensity * 2}px var(--color-from)` 
-    : undefined;
+  const glowEffect =
+    glowIntensity > 0
+      ? `0 0 ${glowIntensity * 5}px ${glowIntensity * 2}px var(--color-from)`
+      : undefined;
 
   return (
- <div className="pointer-events-none absolute inset-0 rounded-[inherit] 
+    <div
+      className="pointer-events-none absolute inset-0 rounded-[inherit] 
     border border-transparent [mask-clip:padding-box,border-box] 
     [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]"
- 
-      // style={{ 
+
+      // style={{
       //   borderWidth: `${borderThickness}px`,
       // }}
     >
@@ -115,20 +115,24 @@ export const BorderBeam = ({
           pauseOnHover && "group-hover:animation-play-state-paused",
           className,
         )}
-        style={{
-          width: size,
-          offsetPath: `rect(0 auto auto 0 round ${beamBorderRadius ?? size}px)`,
-          "--color-from": colorFrom,
-          "--color-to": colorTo,
-          opacity: opacity,
-          boxShadow: glowEffect,
-          borderRadius: beamBorderRadius ? `${beamBorderRadius}px` : undefined,
-          ...style,
-        } as React.CSSProperties & { 
-          "--color-from": string; 
-          "--color-to": string;
-          offsetPath?: string;
-        }}
+        style={
+          {
+            width: size,
+            offsetPath: `rect(0 auto auto 0 round ${beamBorderRadius ?? size}px)`,
+            "--color-from": colorFrom,
+            "--color-to": colorTo,
+            opacity: opacity,
+            boxShadow: glowEffect,
+            borderRadius: beamBorderRadius
+              ? `${beamBorderRadius}px`
+              : undefined,
+            ...style,
+          } as React.CSSProperties & {
+            "--color-from": string;
+            "--color-to": string;
+            offsetPath?: string;
+          }
+        }
         initial={{ offsetDistance: `${initialOffset}%` }}
         animate={{
           offsetDistance: reverse

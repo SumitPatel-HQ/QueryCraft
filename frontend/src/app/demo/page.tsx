@@ -8,8 +8,11 @@ import dynamic from "next/dynamic";
 
 // Dynamic import for the TypingDemo to ensure no SSR issues with timers/timers
 const TypingDemo = dynamic(
-  () => import("@/modules/Home/components/TypingDemo").then(mod => mod.TypingDemo),
-  { ssr: false }
+  () =>
+    import("@/modules/Home/components/TypingDemo").then(
+      (mod) => mod.TypingDemo,
+    ),
+  { ssr: false },
 );
 
 export default function DemoPage() {
@@ -18,8 +21,8 @@ export default function DemoPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
       <div className="max-w-4xl mx-auto">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => router.push("/")}
           className="mb-8 hover:bg-white/5"
         >
@@ -32,9 +35,12 @@ export default function DemoPage() {
           className="space-y-8"
         >
           <div>
-            <h1 className="text-4xl font-black gradient-text">Interactive Demo</h1>
+            <h1 className="text-4xl font-black gradient-text">
+              Interactive Demo
+            </h1>
             <p className="text-[rgba(255,255,255,0.6)] mt-2">
-              Experience how QueryCraft transforms your natural language questions into optimized SQL queries instantly.
+              Experience how QueryCraft transforms your natural language
+              questions into optimized SQL queries instantly.
             </p>
           </div>
 
@@ -48,13 +54,15 @@ export default function DemoPage() {
               <div className="p-6 rounded-xl bg-zinc-900/30 border border-white/5">
                 <h3 className="font-bold mb-2">Natural Language</h3>
                 <p className="text-sm text-[rgba(255,255,255,0.6)]">
-                  Type questions just like you'd ask a colleague. No need to know table names or join logic.
+                  Type questions just like you&apos;d ask a colleague. No need
+                  to know table names or join logic.
                 </p>
               </div>
               <div className="p-6 rounded-xl bg-zinc-900/30 border border-white/5">
                 <h3 className="font-bold mb-2">Instant SQL</h3>
                 <p className="text-sm text-[rgba(255,255,255,0.6)]">
-                  Get production-ready SQL queries in milliseconds, optimized for your specific database schema.
+                  Get production-ready SQL queries in milliseconds, optimized
+                  for your specific database schema.
                 </p>
               </div>
             </div>

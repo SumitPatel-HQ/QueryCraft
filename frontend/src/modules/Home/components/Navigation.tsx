@@ -6,6 +6,7 @@ import { DynamicNavigation } from "@/components/lightswind/dynamic-navigation";
 import ShinyText from "@/components/ui/ShinyText";
 import { NAV_LINKS } from "../constants";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface NavigationProps {
   isAuthenticated: boolean;
@@ -22,7 +23,7 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
   const dynamics = NAV_LINKS.map((link, index) => ({
     id: link.href.replace("#", "") || `link-${index}`,
     label: link.label,
-    href: link.href
+    href: link.href,
   }));
 
   // Track active section and handle hide/show on scroll
@@ -71,20 +72,29 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
   };
 
   return (
-    <nav 
+    <nav
       className={`sticky top-3 sm:top-5 z-50 transition-transform duration-300 ${
-        isVisible ? 'translate-y-0' : '-translate-y-[120%]'
+        isVisible ? "translate-y-0" : "-translate-y-[120%]"
       }`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <img src="./logo2.svg" alt="Logo" className="h-7 w-7 sm:h-8 sm:w-8" />
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => router.push("/")}
+          >
+            <Image
+              src="/logo2.svg"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="h-7 w-7 sm:h-8 sm:w-8"
+            />
             <span className="text-lg sm:text-xl font-bold tracking-tight">
               QueryCraft
             </span>
           </div>
-          
+
           <div className="hidden md:flex items-center gap-6">
             <DynamicNavigation
               links={dynamics}
@@ -98,20 +108,30 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
               className="px-2 backdrop-blur-xs  bg-white/10 "
             />
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-3">
             {!isLoading && (
               <>
                 {isAuthenticated ? (
-                  <Button onClick={() => router.push("/demo")} className="shadow-md text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6">
+                  <Button
+                    onClick={() => router.push("/demo")}
+                    className="shadow-md text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6"
+                  >
                     Dashboard
                   </Button>
                 ) : (
                   <>
-                    <Button variant="ghost" onClick={() => router.push("/auth")} className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs" >
+                    <Button
+                      variant="ghost"
+                      onClick={() => router.push("/auth")}
+                      className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs"
+                    >
                       Sign up
                     </Button>
-                    <Button onClick={() => router.push("/auth")} className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30">
+                    <Button
+                      onClick={() => router.push("/auth")}
+                      className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30"
+                    >
                       <ShinyText text="Log in" speed={2} intensity="high" />
                     </Button>
                   </>

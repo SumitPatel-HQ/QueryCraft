@@ -23,8 +23,7 @@ cd QueryCraft
 2. **Setup environment variables**
 ```bash
 # Create .env file in backend_api folder
-echo "GEMINI_API_KEY=your_gemini_api_key_here" > backend_api/.env
-echo "DATABASE_URL=postgresql://querycraft_user:querycraft_pass@localhost:5432/querycraft_main" >> backend_api/.env
+ - Use env.example file as a reference
 ```
 
 3. **Start with Docker Compose**
@@ -60,8 +59,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Setup environment variables
-echo "GEMINI_API_KEY=your_gemini_api_key_here" > .env
-echo "DATABASE_URL=postgresql://querycraft_user:querycraft_pass@localhost:5432/querycraft_main" >> .env
+- Use env.example file as a reference
 ```
 
 #### **2. Database Setup**
@@ -92,10 +90,10 @@ echo "DATABASE_URL=postgresql://your_user:your_password@localhost:5432/querycraf
 cd frontend
 
 # Install Node.js dependencies
-npm install
+pnpm install
 
 # Start development server
-npm start
+pnpm dev
 ```
 
 #### **4. Start Backend Server**
@@ -103,36 +101,6 @@ npm start
 ```bash
 cd backend_api
 python main.py
-```
-
----
-
-## 📦 **Dependencies**
-
-### **Backend Dependencies**
-```
-fastapi>=0.100.0          # Web framework
-uvicorn[standard]>=0.24.0 # ASGI server
-pydantic>=2.0.0           # Data validation
-python-multipart>=0.0.6   # File upload support
-python-dotenv>=1.0.0      # Environment variables
-psycopg2-binary>=2.9.5    # PostgreSQL driver
-sqlalchemy>=2.0.0         # ORM
-alembic>=1.12.0           # Database migrations
-google-generativeai>=0.3.0 # Gemini AI
-aiofiles>=23.0.0          # Async file operations
-pandas>=2.0.0             # Data processing
-openpyxl>=3.1.0           # Excel file support
-```
-
-### **Frontend Dependencies**
-```
-react: 19.1.1             # UI Framework
-react-router-dom: 6.20.0  # Routing
-react-chartjs-2: 5.2.0    # Charts
-chart.js: 4.4.0           # Chart library
-mermaid: 11.12.0          # ERD diagrams
-typescript: 4.9.5         # Type safety
 ```
 
 ---
@@ -154,11 +122,6 @@ LLM_TIMEOUT=10
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-### **How to Get Gemini API Key:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with Google account
-3. Click "Create API Key"
-4. Copy the API key to your `.env` file
 
 ---
 
