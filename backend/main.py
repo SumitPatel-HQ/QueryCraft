@@ -9,16 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
 
-from config import settings
-from database import init_db
-from routers import databases_router, queries_router, schema_router
+from api.config import settings
+from database.session import init_db
+from api.routers import databases_router, queries_router, schema_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Setup Python paths for core_ai_services imports
-settings.setup_paths()
 
 # Initialize FastAPI application
 app = FastAPI(

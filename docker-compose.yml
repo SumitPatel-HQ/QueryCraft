@@ -1,4 +1,4 @@
-version: '3.8'
+# QueryCraft Docker Compose Config
 
 services:
   # PostgreSQL Database
@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend_api/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - querycraft-network
     healthcheck:
@@ -23,14 +23,15 @@ services:
       retries: 5
 
   backend:
-    build: ./backend_api
+    build: ./backend
     container_name: querycraft-backend
     ports:
       - "8000:8000"
     volumes:
-      - ./core_ai_services:/app/core_ai_services
-      - ./backend_api:/app
-      - uploaded_databases:/app/uploads
+      - ./backend:/app
+      - querycraft_uploads:/app/uploads
+    env_file:
+      - ./backend/.env
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=postgresql://querycraft_user:querycraft_pass@postgres:5432/querycraft_main
@@ -44,7 +45,7 @@ services:
     build: ./frontend
     container_name: querycraft-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     networks:
@@ -57,5 +58,5 @@ networks:
 volumes:
   postgres_data:
     driver: local
-  uploaded_databases:
+  querycraft_uploads:
     driver: local

@@ -19,16 +19,18 @@ class Settings:
     CORS_ORIGINS: list = ["http://localhost:3000"]
     
     # Paths
-    BACKEND_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    PARENT_DIR: str = os.path.dirname(BACKEND_DIR)
-    CORE_AI_PATH: str = os.path.join(PARENT_DIR, 'core_ai_services')
+    BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    CORE_PATH: str = os.path.join(BASE_DIR, 'core')
+    UPLOADS_DIR: str = os.path.join(BASE_DIR, 'uploads')
     
     @classmethod
     def setup_paths(cls):
-        """Add core_ai_services to Python path"""
+        """Add core and database packages to Python path for older entry points"""
         import sys
-        if os.path.exists(cls.CORE_AI_PATH) and cls.CORE_AI_PATH not in sys.path:
-            sys.path.insert(0, cls.CORE_AI_PATH)
+        if os.path.exists(cls.CORE_PATH) and cls.CORE_PATH not in sys.path:
+            sys.path.insert(0, cls.CORE_PATH)
+        if os.path.exists(cls.BASE_DIR) and cls.BASE_DIR not in sys.path:
+            sys.path.insert(0, cls.BASE_DIR)
 
 
 # Global settings instance

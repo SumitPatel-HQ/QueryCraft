@@ -22,7 +22,7 @@ cd QueryCraft
 
 2. **Setup environment variables**
 ```bash
-# Create .env file in backend_api folder
+# Create .env file in backend folder
  - Use env.example file as a reference
 ```
 
@@ -44,7 +44,7 @@ docker-compose up --build
 
 ```bash
 # Navigate to backend directory
-cd backend_api
+cd backend
 
 # Create virtual environment
 python -m venv venv
@@ -99,7 +99,7 @@ pnpm dev
 #### **4. Start Backend Server**
 
 ```bash
-cd backend_api
+cd backend
 python main.py
 ```
 
@@ -109,7 +109,7 @@ python main.py
 
 ### **Required Environment Variables**
 
-Create `backend_api/.env` file:
+Create `backend/.env` file:
 ```env
 # Gemini AI API Key (Required)
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -144,7 +144,7 @@ docker-compose up
 docker-compose up postgres
 
 # Terminal 2: Start Backend
-cd backend_api
+cd backend
 python main.py
 
 # Terminal 3: Start Frontend  
@@ -164,7 +164,7 @@ npm start
 - **Purpose**: Stores uploaded database metadata, query history
 
 ### **SQLite (User Data)**
-- **Location**: `backend_api/uploads/`
+- **Location**: `backend/uploads/`
 - **Purpose**: User-uploaded databases (SQLite files)
 - **Support**: CSV import converts to SQLite automatically
 
@@ -202,7 +202,7 @@ curl http://localhost:8000/api/v1/databases
 #### **"ModuleNotFoundError: No module named 'xyz'"**
 ```bash
 # Activate virtual environment first
-cd backend_api
+cd backend
 venv\Scripts\activate  # Windows
 # or
 source venv/bin/activate  # macOS/Linux
@@ -222,7 +222,7 @@ docker ps
 #### **"Invalid API key" (Gemini)**
 ```bash
 # Verify API key in .env file
-cat backend_api/.env
+cat backend/.env
 
 # Get new API key from:
 # https://makersuite.google.com/app/apikey
@@ -247,7 +247,7 @@ npm start
 ## 📁 **Project Structure**
 ```
 QueryCraft2.0/
-├── backend_api/           # FastAPI backend
+├── backend/           # FastAPI backend
 │   ├── database/         # Database management
 │   ├── routers/          # API endpoints  
 │   ├── services/         # Business logic

@@ -6,10 +6,11 @@ import logging
 import hashlib
 from datetime import datetime, UTC
 
-from schemas import QueryRequest, QueryResponse
-from models import Database as DatabaseModel, QueryHistory
-from database import get_db, DatabaseConnectionManager
-from services import determine_query_complexity, generate_query_explanation
+from api.schemas import QueryRequest, QueryResponse
+from database.models import Database as DatabaseModel, QueryHistory
+from database.session import get_db
+from database.manager import DatabaseConnectionManager
+from api.services import determine_query_complexity, generate_query_explanation
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/v1", tags=["queries"])
 
 # Import query cache
 try:
-    from services.query_cache import query_cache
+    from api.services.query_cache import query_cache
     CACHE_ENABLED = True
     logger.info("✅ Query caching enabled")
 except ImportError:
@@ -94,14 +95,14 @@ async def query_database(database_id: int, request: QueryRequest):
             if database.db_type == 'sqlite' and database.file_path:
                 try:
                     # Use the packaged schema introspector (no external dependency)
-                    from schema_introspection import SQLiteIntrospector
+                    from core.schema_introspection import SQLiteIntrospector
                     db_introspector = SQLiteIntrospector(database.file_path)
                     logger.info(f"Created introspector for SQLite database: {database.name}")
                 except Exception as e:
                     logger.warning(f"Could not create introspector: {e}")
             
             # Create NL processor for this database
-            from nl_to_sql import NLToSQLProcessor
+            from core.nl_to_sql import NLToSQLProcessor
             db_processor = NLToSQLProcessor(schema_data, introspector=db_introspector)
             
             # Process query

@@ -6,7 +6,7 @@ import os
 from typing import Dict
 from fastapi import UploadFile
 
-from services.upload import FileManager, DatabaseValidator, SQLImporter, CSVImporter
+from .upload import FileManager, DatabaseValidator, SQLImporter, CSVImporter
 
 
 class DatabaseUploadHandler:

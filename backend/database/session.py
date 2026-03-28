@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from contextlib import contextmanager
 from typing import Generator
 
-from models import Base
+from .models import Base
 
 # PostgreSQL connection for metadata
 DATABASE_URL = os.getenv(

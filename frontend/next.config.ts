@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   // Ensure Next.js correctly identifies the root for monorepos or nested projects
-  outputFileTracingRoot: path.resolve(__dirname, ".."),
+  // outputFileTracingRoot: path.resolve(__dirname, ".."),
 };
 
 export default nextConfig;

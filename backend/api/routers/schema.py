@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 import traceback
 
-from schemas import SchemaResponse
-from services import generate_mermaid_erd, infer_relationships
+from api.schemas import SchemaResponse
+from api.services import generate_mermaid_erd, infer_relationships
 
 router = APIRouter(prefix="/api/v1", tags=["schema"])
 

@@ -207,14 +207,15 @@ function TextType({
   );
 
   if (typeof Component === "string") {
+    const Tag = Component as any;
     return (
-      <Component
+      <Tag
         ref={containerRef}
         className={`inline-block whitespace-pre-wrap tracking-tight ${className}`}
         {...props}
       >
         {content}
-      </Component>
+      </Tag>
     );
   }
 

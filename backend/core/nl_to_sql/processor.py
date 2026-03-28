@@ -40,7 +40,7 @@ class NLToSQLProcessor:
     def _initialize_llm(self):
         """Initialize LLM generator if available"""
         try:
-            from llm import LLMSQLGenerator  # type: ignore
+            from core.llm import LLMSQLGenerator  # type: ignore
             self.llm_generator = LLMSQLGenerator()
             logger.info("✅ LLM SQL Generator initialized successfully")
         except Exception as e:

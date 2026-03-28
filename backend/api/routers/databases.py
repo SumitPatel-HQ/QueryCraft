@@ -5,10 +5,11 @@ from typing import List
 from datetime import datetime, UTC
 import os
 
-from schemas import DatabaseCreate, DatabaseResponse
-from models import Database as DatabaseModel
-from database import get_db, DatabaseConnectionManager
-from upload_handler import DatabaseUploadHandler
+from api.schemas import DatabaseCreate, DatabaseResponse
+from database.models import Database as DatabaseModel
+from database.session import get_db
+from database.manager import DatabaseConnectionManager
+from api.services.upload_handler import DatabaseUploadHandler
 
 router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
 
