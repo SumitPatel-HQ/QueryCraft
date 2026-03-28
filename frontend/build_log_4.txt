@@ -1,0 +1,30 @@
+
+> next@0.1.0 build D:\LearningHub\CollegeProjects\Semester5\sql-ai\next
+> next build
+
+ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of D:\LearningHub\CollegeProjects\Semester5\sql-ai\pnpm-lock.yaml as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * D:\LearningHub\CollegeProjects\Semester5\sql-ai\next\pnpm-workspace.yaml
+
+Γû▓ Next.js 16.2.1 (Turbopack)
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 4.2s
+  Running TypeScript ...
+Failed to type check.
+
+./src/modules/dashboard/Layout.tsx:3:2
+Type error: Unexpected keyword or identifier.
+
+  1 | "use client";
+  2 |
+> 3 |  from "next/navigation";
+    |  ^
+  4 | import Sidebar from "./Sidebar";
+  5 |
+  6 | export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+Next.js build worker exited with code: 1 and signal: null
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.
