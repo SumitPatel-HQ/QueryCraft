@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Send, Loader2, Database as DatabaseIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useApi } from "@/hooks/use-api";
-import QueryResults from "./QueryResults";
+import { Button } from "@/components/ui/button"
+import { useApi } from "@/hooks/use-api"
+import { cn } from "@/lib/utils"
+import QueryResults from "./QueryResults"
 import type { DatabaseResponse, QueryResponse } from "@/types/api";
 
 interface QueryInterfaceProps {
@@ -90,10 +91,19 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask a question about your data..."
           disabled={loading || !selectedDatabaseId}
-          className="flex-1 bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] px-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.2)] disabled:opacity-50"
+          className="flex-1 bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] px-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:ring-0 focus:border-white/10 disabled:opacity-50"
         />
-        <Button type="submit" disabled={loading || !selectedDatabaseId || !question.trim()} className="px-6">
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+        <Button 
+          type="submit" 
+          disabled={loading || !selectedDatabaseId || !question.trim()} 
+          className={cn(
+            "w-11 h-11 rounded-full p-0 flex items-center justify-center transition-all duration-200 shrink-0",
+            !loading && question.trim() && selectedDatabaseId
+              ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5" 
+              : "bg-[#222222] text-white/20 opacity-50"
+          )}
+        >
+          {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
         </Button>
       </form>
 

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Send, Image, X } from "lucide-react";
+import { Send, ImageIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -33,20 +33,14 @@ export function GradientAIChatInput({
   },
 }: GradientAIChatInputProps) {
   const [message, setMessage] = useState("");
-  const [mounted, setMounted] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const shouldReduceMotion = useReducedMotion();
   const shouldAnimate = enableAnimations && !shouldReduceMotion;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { theme } = useTheme();
-
-  // Fix hydration mismatch - only apply theme after mounting
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { resolvedTheme } = useTheme();
 
   // Get current theme's colors
-  const isDark = mounted && theme === "dark";
+  const isDark = resolvedTheme === "dark";
   const currentButtonBorderColor = isDark ? buttonBorderColor.dark : buttonBorderColor.light;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -133,11 +127,11 @@ export function GradientAIChatInput({
               onClick={handleSubmit}
               disabled={disabled || !message.trim()}
               className={cn(
-                "flex items-center justify-center",
-                "w-8 h-8 mt-1",
-                "text-muted-foreground hover:text-foreground",
-                "transition-colors cursor-pointer",
-                (disabled || !message.trim()) && "opacity-50 cursor-not-allowed"
+                "flex items-center justify-center transition-all duration-200",
+                "h-8 w-8 rounded-full p-0 flex-shrink-0",
+                !disabled && message.trim()
+                  ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5" 
+                  : "bg-white/10 text-white/20 opacity-50"
               )}
               whileHover={shouldAnimate && message.trim() ? { scale: 1.1 } : {}}
               whileTap={shouldAnimate && message.trim() ? { scale: 0.9 } : {}}
@@ -174,7 +168,7 @@ export function GradientAIChatInput({
                 damping: 25,
               }}
             >
-              <Image className="w-3 h-3" aria-hidden="true" />
+              <ImageIcon className="w-3 h-3" aria-hidden="true" />
               <span>Attach File</span>
             </motion.button>
 
@@ -204,6 +198,7 @@ export function GradientAIChatInput({
                   >
                     <span className="truncate max-w-[100px]">{file.name}</span>
                     <button
+                      type="button"
                       onClick={() => removeFile(index)}
                       className="flex-shrink-0 w-4 h-4 rounded-full bg-muted-foreground/20 hover:bg-destructive/20 flex items-center justify-center"
                     >
