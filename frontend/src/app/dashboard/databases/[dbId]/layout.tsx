@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getDatabase } from "@/lib/api";
+import DetailNav from "./_components/DetailNav";
 
 const tabs = [
   { to: "overview", label: "Overview" },
@@ -42,20 +43,7 @@ export default async function DatabaseDetailLayout({
             {status}
           </div>
         </div>
-        <nav className="mt-4">
-          {tabs.map((t) => {
-            const href = `/dashboard/databases/${dbId}/${t.to}`;
-            return (
-              <Link
-                key={t.to}
-                href={href}
-                className="h-11 px-6 flex items-center gap-3 text-sm text-[#888888] hover:text-[#f0f0f0] hover:bg-[rgba(255,255,255,0.05)] transition-colors"
-              >
-                {t.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <DetailNav dbId={dbId} tabs={tabs} />
       </aside>
 
       <main className="ml-[240px] w-full p-8 bg-[#0a0a0a]">

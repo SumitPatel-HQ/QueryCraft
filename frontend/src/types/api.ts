@@ -91,8 +91,8 @@ export interface DatabaseTablesResponse {
   database_id: number;
   database_name: string;
   file_path: string | null;
-  total_tables: number;
-  tables: TableInfo[];
+  table_count: number;
+  tables: string[];
 }
 
 // ============================================================================
