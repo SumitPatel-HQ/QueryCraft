@@ -96,7 +96,7 @@ export function Footer() {
             className="text-xs sm:text-sm text-center sm:text-left"
             style={{ color: "rgba(255, 255, 255, 0.38)" }}
           >
-            © 2025 QueryCraft. All rights reserved.
+            © {new Date().getFullYear()} QueryCraft. All rights reserved.
           </p>
           <div className="flex gap-3 sm:gap-4">
             <a

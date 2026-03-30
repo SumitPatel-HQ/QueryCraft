@@ -8,6 +8,8 @@ import { NAV_LINKS } from "../constants";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
+import { useLenis } from "@studio-freight/react-lenis";
+
 interface NavigationProps {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -18,6 +20,7 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
   const [activeSection, setActiveSection] = useState<string>("hero");
   const [isVisible, setIsVisible] = useState<boolean>(true);
   const [lastScrollY, setLastScrollY] = useState<number>(0);
+  const lenis = useLenis();
 
   // Transform NAV_LINKS to include id for DynamicNavigation
   const dynamics = NAV_LINKS.map((link, index) => ({
@@ -64,16 +67,20 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
   }, [lastScrollY]);
 
   const handleClick = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveSection(id);
+    setActiveSection(id);
+    if (lenis) {
+      lenis.scrollTo(`#${id}`, { offset: -80 });
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
 
   return (
     <nav
-      className={`sticky top-3 sm:top-5 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-[120%]"
+      className={`sticky top-6 sm:top-8 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-[120%]"
         }`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">

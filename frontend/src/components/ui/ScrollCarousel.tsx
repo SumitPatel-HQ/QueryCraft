@@ -11,11 +11,11 @@ interface ScrollCarouselProps {
   pauseOnHover?: boolean;
 }
 
-export function ScrollCarousel({ 
-  children, 
-  className, 
+export function ScrollCarousel({
+  children,
+  className,
   speed = 30,
-  pauseOnHover = true 
+  pauseOnHover = true,
 }: ScrollCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -26,7 +26,7 @@ export function ScrollCarousel({
 
     const carousel = carouselRef.current;
     const firstChild = carousel.firstElementChild as HTMLElement;
-    
+
     if (!firstChild) return;
 
     // Clone children for seamless loop
@@ -37,7 +37,8 @@ export function ScrollCarousel({
     });
 
     // Calculate the width of one set of items
-    const itemsWidth = firstChild.offsetWidth * children.length + (24 * children.length); // 24px is gap-6
+    const itemsWidth =
+      firstChild.offsetWidth * children.length + 24 * children.length; // 24px is gap-6
 
     // Create infinite scroll animation
     animationRef.current = gsap.to(carousel, {
@@ -53,11 +54,11 @@ export function ScrollCarousel({
     // Pause on hover
     if (pauseOnHover && containerRef.current) {
       const container = containerRef.current;
-      
+
       const handleMouseEnter = () => {
         animationRef.current?.pause();
       };
-      
+
       const handleMouseLeave = () => {
         animationRef.current?.resume();
       };
@@ -78,7 +79,10 @@ export function ScrollCarousel({
   }, [speed, pauseOnHover]);
 
   return (
-    <div ref={containerRef} className={cn("overflow-hidden relative", className)}>
+    <div
+      ref={containerRef}
+      className={cn("overflow-hidden relative", className)}
+    >
       <div
         ref={carouselRef}
         className="flex gap-4 sm:gap-5 md:gap-6 will-change-transform"
@@ -86,7 +90,7 @@ export function ScrollCarousel({
       >
         {children}
       </div>
-      
+
       {/* Gradient fade on edges - responsive */}
       <div className="absolute inset-y-0 left-0 w-12 sm:w-16 md:w-20 bg-gradient-to-r from-[#0D0D0D] to-transparent pointer-events-none z-10" />
       <div className="absolute inset-y-0 right-0 w-12 sm:w-16 md:w-20 bg-gradient-to-l from-[#0D0D0D] to-transparent pointer-events-none z-10" />
@@ -99,22 +103,21 @@ interface ScrollCarouselItemProps {
   className?: string;
 }
 
-export function ScrollCarouselItem({ children, className }: ScrollCarouselItemProps) {
+export function ScrollCarouselItem({
+  children,
+  className,
+}: ScrollCarouselItemProps) {
   return (
     <div
       className={cn(
         "carousel-card relative min-w-[280px] sm:min-w-[320px] md:min-w-sm lg:min-w-sm",
         // Liquid glass effect
         "backdrop-blur-xs bg-white/5",
-        "border rounded-2xl sm:rounded-3xl",
-        // Hover effects
-        "hover:bg-white/10 hover:border-white/5",
+        "border border-white/10 rounded-2xl sm:rounded-3xl",
+        // Minimal hover effect
+        "hover:bg-white/8 hover:border-white/20",
         "transition-all duration-300",
-        // Glass refraction effect
-        "before:absolute before:inset-0 before:rounded-xl sm:before:rounded-2xl",
-        "before:bg-gradient-to-br before:from-white/20 before:via-transparent before:to-transparent",
-        "before:opacity-0 hover:before:opacity-100 before:transition-opacity",
-        className
+        className,
       )}
     >
       {children}

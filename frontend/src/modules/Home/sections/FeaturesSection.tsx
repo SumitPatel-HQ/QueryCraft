@@ -88,12 +88,7 @@ export function FeaturesSection() {
                   {feature.desc}
                 </p>
 
-                {/* 
-                  ✨ DECORATIVE GRADIENT ORB 
-                  - w-32 h-32 sm:w-40 sm:h-40 = responsive orb size
-                  - -bottom-8 -right-8 sm:-bottom-10 sm:-right-10 = responsive position
-                */}
-                <div className="absolute -bottom-8 -right-8 sm:-bottom-10 sm:-right-10 w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl pointer-events-none group-hover:from-blue-500/20 group-hover:to-purple-500/20 transition-all duration-500" />
+                
               </div>
             </ScrollCarouselItem>
           );

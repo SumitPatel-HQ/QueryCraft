@@ -98,9 +98,26 @@
   }
 
   html {
-    scroll-behavior: smooth;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  /* Lenis smooth scrolling support */
+  html.lenis, html.lenis body {
+    height: auto;
+    scroll-behavior: auto !important;
+  }
+
+  html.lenis {
+    overflow-y: scroll; /* Force scrollbar to prevent layout shifts */
+  }
+
+  body.lenis {
+    overscroll-behavior: none; /* Prevent browser momentum bounce conflicts */
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */

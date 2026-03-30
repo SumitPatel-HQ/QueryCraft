@@ -31,7 +31,7 @@ export function PricingSection({ onCTAClick }: PricingSectionProps) {
     },
     {
       name: "Professional",
-      price: "$49",
+      price: "$20 ",
       period: "/monthly",
       description: "For teams running regular data workflows and web automation pipelines.",
       cta: "Sign up with Professional",
@@ -77,7 +77,7 @@ export function PricingSection({ onCTAClick }: PricingSectionProps) {
           transition={{ duration: 0.6 }}
           className="text-center mb-10 sm:mb-12 md:mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent px-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent px-4 py-3">
             Explore all plans
           </h2>
         </motion.div>
@@ -172,19 +172,7 @@ export function PricingSection({ onCTAClick }: PricingSectionProps) {
                   ))}
                 </ul>
 
-                {/* Decorative gradient orb */}
-                <div
-                  className={`
-                    absolute -bottom-8 -right-8 sm:-bottom-10 sm:-right-10 w-32 h-32 sm:w-40 sm:h-40 rounded-full blur-3xl pointer-events-none opacity-30
-                    ${
-                      plan.popular
-                        ? "bg-gradient-to-br from-teal-500 to-cyan-500"
-                        : index === 0
-                        ? "bg-gradient-to-br from-gray-500 to-gray-600"
-                        : "bg-gradient-to-br from-purple-500 to-pink-500"
-                    }
-                  `}
-                />
+
               </div>
             </motion.div>
           ))}

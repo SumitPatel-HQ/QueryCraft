@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import BeamGridBackground from "@/components/ui/beam-grid-background";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import SmoothScroll from "@/components/providers/smooth-scroll";
 
 // Priority Imports (Above the fold)
 import { Navigation } from "@/modules/Home/components/Navigation";
@@ -31,26 +32,28 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 relative overflow-x-hidden">
-      <BeamGridBackground 
-        showFade={false}
-        gridColor="#424242"
-        darkGridColor="#424242"
-        beamColor="rgba(217, 70, 239, 0.8)"
-        darkBeamColor="rgba(217, 70, 239, 0.8)"
-        interactive={false}
-      />
-      <div className="relative z-10 w-full overflow-hidden">
-        <Navigation isAuthenticated={isAuthenticated} isLoading={isLoading} />
-        <HeroSection onCTAClick={handleCTA} onSignUpClick={handleSignUp} />
-        <SolutionSection />
-        <FeaturesSection />
-        <UseCasesSection />
-        <PricingSection onCTAClick={handleCTA} />
-        <FAQSection />
-        <Footer />
+    <SmoothScroll>
+      <div className="min-h-screen bg-zinc-950">
+        <BeamGridBackground 
+          showFade={false}
+          gridColor="#424242"
+          darkGridColor="#424242"
+          beamColor="rgba(217, 70, 239, 0.8)"
+          darkBeamColor="rgba(217, 70, 239, 0.8)"
+          interactive={false}
+        />
+        <div className="relative z-10 w-full overflow-hidden">
+          <Navigation isAuthenticated={isAuthenticated} isLoading={isLoading} />
+          <HeroSection onCTAClick={handleCTA} onSignUpClick={handleSignUp} />
+          <SolutionSection />
+          <FeaturesSection />
+          <UseCasesSection />
+          <PricingSection onCTAClick={handleCTA} />
+          {/* <FAQSection /> */}
+          <Footer />
+        </div>
+        <ScrollToTop />
       </div>
-      <ScrollToTop />
-    </div>
+    </SmoothScroll>
   );
 }
