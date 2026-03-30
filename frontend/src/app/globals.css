@@ -93,7 +93,8 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    outline: none !important;
   }
 
   html {
@@ -362,12 +363,6 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* Focus states for accessibility */
-*:focus-visible {
-  outline: 2px solid #6366F1;
-  outline-offset: 2px;
 }
 
 /* SQL Syntax Highlighting */

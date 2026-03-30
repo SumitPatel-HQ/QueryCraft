@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Loader2, Database as DatabaseIcon } from "lucide-react";
+import { Send, Loader2, Database as DatabaseIcon, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
@@ -22,6 +22,8 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,28 +86,62 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask a question about your data..."
-          disabled={loading || !selectedDatabaseId}
-          className="flex-1 bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] px-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:ring-0 focus:border-white/10 disabled:opacity-50"
-        />
-        <Button 
-          type="submit" 
-          disabled={loading || !selectedDatabaseId || !question.trim()} 
-          className={cn(
-            "w-11 h-11 rounded-full p-0 flex items-center justify-center transition-all duration-200 shrink-0",
-            !loading && question.trim() && selectedDatabaseId
-              ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5" 
-              : "bg-[#222222] text-white/20 opacity-50"
-          )}
+      <div className="flex items-end gap-3 px-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => document.getElementById('file-upload-input')?.click()}
+          className="w-11 h-11 rounded-full text-[#888888] hover:text-[#f0f0f0] hover:bg-white/5 shrink-0 flex items-center justify-center transition-all duration-200"
         >
-          {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+          <Paperclip size={20} />
         </Button>
-      </form>
+        <input
+          id="file-upload-input"
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            // Handle file upload
+            console.log(e.target.files?.[0]);
+          }}
+        />
+
+        <form onSubmit={handleSubmit} className="flex-1 flex items-end gap-3">
+          <div className="flex-1 relative">
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
+              placeholder="Ask a question about your data..."
+              disabled={loading || !selectedDatabaseId}
+              rows={1}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+              className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[22px] px-6 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.15)] disabled:opacity-50 resize-none overflow-hidden min-h-[44px] max-h-[200px] flex items-center"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={loading || !selectedDatabaseId || !question.trim()}
+            className={cn(
+              "w-11 h-11 rounded-full p-0 flex items-center justify-center transition-all duration-200 shrink-0",
+              !loading && question.trim() && selectedDatabaseId
+                ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
+                : "bg-[#222222] text-white/20 opacity-50"
+            )}
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+          </Button>
+        </form>
+      </div>
 
       {error && (
         <div className="bg-red-900/20 border border-red-900/50 rounded-[10px] p-4 text-red-400 text-[14px]">
