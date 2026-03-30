@@ -11,7 +11,6 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 interface HeroSectionProps {
   onCTAClick?: () => void;
-  onSignUpClick?: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -19,7 +18,6 @@ interface HeroSectionProps {
 export function HeroSection({
   isAuthenticated,
   isLoading,
-  onSignUpClick,
 }: HeroSectionProps) {
   const router = useRouter();
 
@@ -72,7 +70,7 @@ export function HeroSection({
                   <Button
                     size="lg"
                     onClick={() => router.push("/dashboard")}
-                    className="text-sm sm:text-md h-11 sm:h-12 px-8 sm:px-10 font-bold bg-zinc-900/80 text-white hover:bg-zinc-800/90 transition-all duration-300 hover:scale-[1.05] active:scale-95 rounded-xl backdrop-blur-sm shadow-xl border border-white/5"
+                    className="text-sm sm:text-md h-11 sm:h-12 px-8 sm:px-10 font-bold bg-zinc-900/80 text-white hover:bg-zinc-800/90 transition-all duration-300 hover:scale-[1.05] active:scale-95 rounded-3xl backdrop-blur-sm shadow-xl border border-white/5"
                   >
                     Go to Dashboard
                   </Button>

@@ -21,9 +21,7 @@ export default function Home() {
     router.push("/dashboard");
   };
 
-  const handleSignUp = () => {
-    router.push("/auth");
-  };
+
 
   return (
     <div className="min-h-screen bg-zinc-950 relative">
@@ -38,7 +36,11 @@ export default function Home() {
       />
       <div className="relative z-10">
         <Navigation isAuthenticated={isAuthenticated} isLoading={isLoading} />
-        <HeroSection onCTAClick={handleCTA} onSignUpClick={handleSignUp} />
+        <HeroSection 
+          onCTAClick={handleCTA} 
+          isAuthenticated={isAuthenticated} 
+          isLoading={isLoading} 
+        />
 
         <SolutionSection />
         <FeaturesSection />

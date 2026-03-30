@@ -32,6 +32,7 @@ const PricingSection = dynamic(() =>
     (m) => m.PricingSection,
   ),
 );
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FAQSection = dynamic(() =>
   import("@/modules/Home/sections/FAQSection").then((m) => m.FAQSection),
 );
@@ -47,9 +48,7 @@ export default function HomePage() {
     router.push("/dashboard");
   };
 
-  const handleSignUp = () => {
-    router.push("/dashboard"); // Defaulting to dashboard for demo context
-  };
+
 
   return (
     <SmoothScroll>
@@ -66,7 +65,6 @@ export default function HomePage() {
           <Navigation isAuthenticated={isAuthenticated} isLoading={isLoading} />
           <HeroSection
             onCTAClick={handleCTA}
-            onSignUpClick={handleSignUp}
             isAuthenticated={isAuthenticated}
             isLoading={isLoading}
           />

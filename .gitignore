@@ -83,5 +83,8 @@ jspm_packages/
 .yarn-integrity
 
 # Guidelines (internal docs)
-guidelines/
+.guidelines/
+.agents/
+.skills/
+.claude
 
