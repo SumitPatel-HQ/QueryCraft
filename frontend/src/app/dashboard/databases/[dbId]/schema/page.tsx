@@ -89,7 +89,7 @@ export default async function DatabaseSchemaPage({
                         )}
                         {col.foreign_key && (
                           <span className="inline-block bg-purple-900/30 text-purple-400 px-2 py-1 rounded">
-                            FK -> {col.foreign_key.table}.{col.foreign_key.column}
+                            FK {"->"} {col.foreign_key.table}.{col.foreign_key.column}
                           </span>
                         )}
                       </td>

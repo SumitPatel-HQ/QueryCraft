@@ -1,9 +1,10 @@
 import DashboardHome from "@/modules/dashboard/index";
 import { getDatabases } from "@/lib/api";
+import type { DatabaseResponse } from "@/types/api";
 
 export default async function DashboardPage() {
-  let databases;
-  let error;
+  let databases: DatabaseResponse[] = [];
+  let error: string | undefined;
 
   try {
     databases = await getDatabases();

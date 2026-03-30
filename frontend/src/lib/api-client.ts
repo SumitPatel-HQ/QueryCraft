@@ -25,9 +25,14 @@ async function clientFetch<T>(
   token: string | null,
   options?: RequestInit
 ): Promise<T> {
-  const headers: HeadersInit = {
-    ...options?.headers,
-  };
+  const headers: Record<string, string> = {};
+
+  if (options?.headers) {
+    const incoming = new Headers(options.headers);
+    incoming.forEach((value, key) => {
+      headers[key] = value;
+    });
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -81,7 +86,7 @@ export async function uploadDatabase(
     formData.append("description", description);
   }
 
-  const headers: HeadersInit = {};
+  const headers: Record<string, string> = {};
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }

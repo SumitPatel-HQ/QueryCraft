@@ -27,7 +27,7 @@ export interface DatabaseResponse {
 }
 
 export interface SchemaResponse {
-  schema_data: Record<string, any>;
+  schema_data: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -42,7 +42,7 @@ export interface QueryResponse {
   original_question: string;
   sql_query: string;
   explanation: string;
-  results: any[];
+  results: unknown[];
   columns?: string[] | null; // Column names for table rendering
   confidence?: number | null;
   generation_method?: string | null;
@@ -73,7 +73,7 @@ export interface DeleteDatabaseResponse {
 }
 
 export interface SchemaDataResponse {
-  schema: Record<string, any>;
+  schema: Record<string, unknown>;
   source: "cached" | "fresh";
 }
 
@@ -118,5 +118,5 @@ export interface CacheClearResponse {
 // ============================================================================
 
 export interface APIError {
-  detail: string | Record<string, any>;
+  detail: string | Record<string, unknown>;
 }

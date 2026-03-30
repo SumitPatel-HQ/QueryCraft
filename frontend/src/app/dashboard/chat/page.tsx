@@ -1,9 +1,10 @@
 import ChatPage from "@/modules/dashboard/ChatPage";
 import { getDatabases } from "@/lib/api";
+import type { DatabaseResponse } from "@/types/api";
 
 export default async function MainChatPage() {
-  let databases;
-  let error;
+  let databases: DatabaseResponse[] = [];
+  let error: string | undefined;
 
   try {
     databases = await getDatabases();

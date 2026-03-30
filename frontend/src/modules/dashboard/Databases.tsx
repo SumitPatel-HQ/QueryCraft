@@ -22,6 +22,7 @@ export default function DatabasesView({ databases: initialDatabases, error }: Da
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleUploadSuccess = (data: DatabaseUploadResponse) => {
+    void data.database_id;
     // Refresh the page to show the new database
     router.refresh();
   };
