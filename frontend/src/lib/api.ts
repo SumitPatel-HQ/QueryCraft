@@ -19,6 +19,15 @@ import type {
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
+function isExpectedDynamicServerError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const dynamicError = error as { digest?: unknown };
+  return dynamicError.digest === "DYNAMIC_SERVER_USAGE";
+}
+
 /**
  * Get authorization headers with Clerk JWT token
  */
@@ -33,7 +42,9 @@ async function getAuthHeaders(): Promise<HeadersInit> {
       };
     }
   } catch (error) {
-    console.warn("Failed to get auth token:", error);
+    if (!isExpectedDynamicServerError(error)) {
+      console.warn("Failed to get auth token:", error);
+    }
   }
 
   return {};

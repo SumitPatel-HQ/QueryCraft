@@ -22,12 +22,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showFileUpload, setShowFileUpload] = useState(false);
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleQuery = async () => {
     if (!selectedDatabaseId) {
       setError("Please select a database");
       return;
@@ -50,6 +45,11 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleQuery();
   };
 
   return (
@@ -114,7 +114,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSubmit(e as any);
+                  handleQuery();
                 }
               }}
               placeholder="Ask a question about your data..."
