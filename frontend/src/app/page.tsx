@@ -1,19 +1,22 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import BeamGridBackground from "@/components/ui/beam-grid-background";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
-import {
-  Navigation,
-  Footer,
-  HeroSection,
-  SolutionSection,
-  FeaturesSection,
-  UseCasesSection,
-  PricingSection,
-  FAQSection
-} from "@/modules/Home/index";
+
+// Priority Imports (Above the fold)
+import { Navigation } from "@/modules/Home/components/Navigation";
+import { HeroSection } from "@/modules/Home/sections/HeroSection";
+
+// Lazy Loaded Sections (Below the fold)
+const SolutionSection = dynamic(() => import("@/modules/Home/sections/SolutionSection").then(m => m.SolutionSection));
+const FeaturesSection = dynamic(() => import("@/modules/Home/sections/FeaturesSection").then(m => m.FeaturesSection));
+const UseCasesSection = dynamic(() => import("@/modules/Home/sections/UseCasesSection").then(m => m.UseCasesSection));
+const PricingSection = dynamic(() => import("@/modules/Home/sections/PricingSection").then(m => m.PricingSection));
+const FAQSection = dynamic(() => import("@/modules/Home/sections/FAQSection").then(m => m.FAQSection));
+const Footer = dynamic(() => import("@/modules/Home/components/Footer").then(m => m.Footer));
 
 export default function HomePage() {
   const router = useRouter();

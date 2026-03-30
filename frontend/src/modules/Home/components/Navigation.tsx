@@ -73,9 +73,8 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
 
   return (
     <nav
-      className={`sticky top-3 sm:top-5 z-50 transition-transform duration-300 ${
-        isVisible ? "translate-y-0" : "-translate-y-[120%]"
-      }`}
+      className={`sticky top-3 sm:top-5 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-[120%]"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">

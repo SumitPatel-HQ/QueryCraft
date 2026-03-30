@@ -168,16 +168,8 @@ export const DynamicNavigation = ({
         color: textColor,
       }}
     >
-      {/* Border Beam Effect */}
-      <BorderBeam
-        size={100}
-        duration={5}
-        colorFrom="#6366F1"
-        colorTo="#a855f7"
-        opacity={0.5}
-        glowIntensity={1}
-        beamBorderRadius={9999}
-      />
+      {/* Border Beam Effect removed */}
+
       
       {/* Background highlight */}
       <div

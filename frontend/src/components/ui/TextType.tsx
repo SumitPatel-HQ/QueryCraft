@@ -206,31 +206,18 @@ function TextType({
     </>
   );
 
-  if (typeof Component === "string") {
-    const Tag = Component as any;
-    return (
-      <Tag
-        ref={containerRef}
-        className={`inline-block whitespace-pre-wrap tracking-tight ${className}`}
-        {...props}
-      >
-        {content}
-      </Tag>
-    );
-  }
-
-  const ContainerComponent = Component as React.ComponentType<
+  const Tag = Component as React.ComponentType<
     React.HTMLAttributes<HTMLElement> & { ref?: React.Ref<HTMLElement> }
   >;
 
   return (
-    <ContainerComponent
-      ref={containerRef}
+    <Tag
+      ref={containerRef as React.Ref<HTMLElement>}
       className={`inline-block whitespace-pre-wrap tracking-tight ${className}`}
       {...props}
     >
       {content}
-    </ContainerComponent>
+    </Tag>
   );
 }
 
