@@ -125,9 +125,6 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
                     <UserButton
                       showName
                       appearance={{
-                        variables: {
-                          colorText: "#ffffff",
-                        },
                         elements: {
                           userButtonOuterIdentifier: {
                             color: "#ffffff",

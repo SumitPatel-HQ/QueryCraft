@@ -28,10 +28,7 @@ export default function SettingsPage() {
             },
             variables: {
               colorPrimary: "#3b82f6",
-              colorText: "rgba(255,255,255,0.87)",
               colorBackground: "#1a1a1a",
-              colorInputBackground: "#262626",
-              colorInputText: "white",
               borderRadius: "0.5rem",
             }
           }}
