@@ -1,63 +1,55 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname, useRouter, useParams } from "next/navigation";
+import { getDatabase } from "@/lib/api";
 
 const tabs = [
-  { to: "overview", label: "📋 Overview" },
-  { to: "schema", label: "📊 Schema" },
-  { to: "erd", label: "🗺️ ERD" },
-  { to: "chat", label: "💬 Chat" },
-  { to: "settings", label: "⚙️ Settings" },
+  { to: "overview", label: "Overview" },
+  { to: "schema", label: "Schema" },
+  { to: "erd", label: "ERD" },
+  { to: "chat", label: "Chat" },
+  { to: "settings", label: "Settings" },
 ];
 
-export default function DatabaseDetailLayout({
-  children
+export default async function DatabaseDetailLayout({
+  children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ dbId: string }>;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useParams();
-  const dbId = params.dbId;
+  const { dbId } = await params;
+  const id = parseInt(dbId, 10);
+
+  let databaseName = `Database ${dbId}`;
+  let status = "Unknown";
+
+  try {
+    const db = await getDatabase(id);
+    databaseName = db.display_name;
+    status = db.is_active ? "Active" : "Inactive";
+  } catch {
+    // Keep fallback label if database lookup fails
+  }
 
   return (
     <div className="flex min-h-screen">
-      <aside
-        className="fixed h-screen w-[240px]"
-        style={{
-          background: "rgba(30,30,30,0.95)",
-          borderRight: "1px solid rgba(255,255,255,0.08)"
-        }}
-      >
-        <div className="p-6" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <button className="text-sm text-[#8B5CF6]" onClick={() => router.back()}>
-            ← Back to Databases
-          </button>
-          <div className="mt-3 font-semibold text-white">E-commerce Database</div>
-          <div
-            className="mt-2 inline-block text-xs px-2 py-1 rounded-md"
-            style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
-          >
-            ✓ Connected
+      <aside className="fixed h-screen w-[240px] bg-[#111111] border-r border-[rgba(255,255,255,0.08)]">
+        <div className="p-6 border-b border-[rgba(255,255,255,0.08)]">
+          <Link href="/dashboard/databases" className="text-sm text-[#888888] hover:text-[#f0f0f0] transition-colors">
+            Back to Databases
+          </Link>
+          <div className="mt-3 font-semibold text-[#f0f0f0] truncate">{databaseName}</div>
+          <div className="mt-2 inline-block text-xs px-2 py-1 rounded-md bg-[rgba(16,185,129,0.15)] text-[#10B981]">
+            {status}
           </div>
         </div>
         <nav className="mt-4">
           {tabs.map((t) => {
             const href = `/dashboard/databases/${dbId}/${t.to}`;
-            const isActive = pathname === href || pathname?.endsWith(`/${t.to}`);
             return (
               <Link
                 key={t.to}
                 href={href}
-                className={[
-                  "h-11 px-6 flex items-center gap-3 text-sm transition-colors",
-                  isActive ? "text-[#8B5CF6]" : "text-[rgba(255,255,255,0.6)]",
-                ].join(" ")}
-                style={{
-                  background: isActive ? "rgba(139,92,246,0.15)" : "transparent",
-                  borderLeft: isActive ? "3px solid #8B5CF6" : "3px solid transparent"
-                }}
+                className="h-11 px-6 flex items-center gap-3 text-sm text-[#888888] hover:text-[#f0f0f0] hover:bg-[rgba(255,255,255,0.05)] transition-colors"
               >
                 {t.label}
               </Link>
@@ -66,7 +58,7 @@ export default function DatabaseDetailLayout({
         </nav>
       </aside>
 
-      <main className="ml-[240px] w-full p-8" style={{ background: "#121212" }}>
+      <main className="ml-[240px] w-full p-8 bg-[#0a0a0a]">
         {children}
       </main>
     </div>
