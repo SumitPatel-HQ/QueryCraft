@@ -22,12 +22,14 @@ export function FeaturesSection() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mt-4 sm:mt-6 mb-3 sm:mb-4 bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent px-4">
             <TextType
               text="Powerful Features"
-              typingSpeed={75}
-              showCursor={false}
+              typingSpeed={50}
+              showCursor={true}
+              cursorClassName="text-blue-400"
               loop={true}
               startOnVisible={true}
-              pauseDuration={2000}
-              deletingSpeed={50}
+              initialDelay={800}
+              pauseDuration={3000}
+              deletingSpeed={30}
             />
           </h2>
           <p className="text-lg sm:text-xl text-muted-foreground px-4">

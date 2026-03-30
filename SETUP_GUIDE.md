@@ -22,7 +22,7 @@ cd QueryCraft
 
 2. **Setup environment variables**
 ```bash
-# Create .env file in backend folder
+# Create .env file in Frontend & Backend folder
  - Use env.example file as a reference
 ```
 

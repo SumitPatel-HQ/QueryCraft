@@ -10,10 +10,11 @@ if (typeof window !== "undefined") {
 }
 
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lenisRef = useRef<any>(null);
 
   // Sync GSAP ScrollTrigger with Lenis
-  useLenis(({ scroll }) => {
+  useLenis(() => {
     ScrollTrigger.update();
   });
 

@@ -42,6 +42,7 @@ function TextType({
   className = "",
   showCursor = true,
   hideCursorWhileTyping = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cursorCharacter = "|",
   cursorClassName = "",
   cursorBlinkDuration = 0.5,
@@ -65,11 +66,18 @@ function TextType({
     [text],
   );
 
-  const getRandomSpeed = useCallback(() => {
-    if (!variableSpeed) return typingSpeed;
-    const { min, max } = variableSpeed;
-    return Math.random() * (max - min) + min;
-  }, [variableSpeed, typingSpeed]);
+  const getRandomSpeed = useCallback(
+    (isDeleting: boolean) => {
+      const baseSpeed = isDeleting ? deletingSpeed : typingSpeed;
+      if (!variableSpeed) {
+        // Natural variation: ±20%
+        return baseSpeed * (0.8 + Math.random() * 0.4);
+      }
+      const { min, max } = variableSpeed;
+      return Math.random() * (max - min) + min;
+    },
+    [variableSpeed, typingSpeed, deletingSpeed],
+  );
 
   const getCurrentTextColor = () => {
     if (textColors.length === 0) return;
@@ -95,16 +103,26 @@ function TextType({
   }, [startOnVisible]);
 
   useEffect(() => {
-    if (showCursor && cursorRef.current) {
-      gsap.set(cursorRef.current, { opacity: 1 });
-      gsap.to(cursorRef.current, {
-        opacity: 0,
+    if (!showCursor || !cursorRef.current) return;
+
+    const cursor = cursorRef.current;
+
+    gsap.fromTo(
+      cursor,
+      { opacity: 0, scaleY: 0.7, transformOrigin: "center" },
+      {
+        opacity: 1,
+        scaleY: 1,
         duration: cursorBlinkDuration,
         repeat: -1,
         yoyo: true,
         ease: "power2.inOut",
-      });
-    }
+      },
+    );
+
+    return () => {
+      gsap.killTweensOf(cursor);
+    };
   }, [showCursor, cursorBlinkDuration]);
 
   useEffect(() => {
@@ -129,25 +147,21 @@ function TextType({
             onSentenceComplete(textArray[currentTextIndex], currentTextIndex);
           }
 
-          setCurrentTextIndex((prev) => (prev + 1) % textArray.length);
+          const nextIndex = (currentTextIndex + 1) % textArray.length;
+          setCurrentTextIndex(nextIndex);
           setCurrentCharIndex(0);
-          timeout = setTimeout(() => {}, pauseDuration);
+          timeout = setTimeout(() => {}, pauseDuration / 2);
         } else {
           timeout = setTimeout(() => {
             setDisplayedText((prev) => prev.slice(0, -1));
-          }, deletingSpeed);
+          }, getRandomSpeed(true));
         }
       } else {
         if (currentCharIndex < processedText.length) {
-          timeout = setTimeout(
-            () => {
-              setDisplayedText(
-                (prev) => prev + processedText[currentCharIndex],
-              );
-              setCurrentCharIndex((prev) => prev + 1);
-            },
-            variableSpeed ? getRandomSpeed() : typingSpeed,
-          );
+          timeout = setTimeout(() => {
+            setDisplayedText((prev) => prev + processedText[currentCharIndex]);
+            setCurrentCharIndex((prev) => prev + 1);
+          }, getRandomSpeed(false));
         } else if (loop || textArray.length > 1) {
           timeout = setTimeout(() => {
             setIsDeleting(true);
@@ -196,12 +210,10 @@ function TextType({
       {showCursor && (
         <span
           ref={cursorRef}
-          className={`ml-1 inline-block opacity-100 ${
+          className={`ml-1 inline-block w-[2px] h-[1.1em] translate-y-[0.1em] align-middle bg-current rounded-full opacity-100 ${
             shouldHideCursor ? "hidden" : ""
           } ${cursorClassName}`}
-        >
-          {cursorCharacter}
-        </span>
+        />
       )}
     </>
   );

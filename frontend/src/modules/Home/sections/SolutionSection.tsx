@@ -27,12 +27,14 @@ export function SolutionSection() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-8 sm:mb-10 px-4">
             <TextType
               text="How QueryCraft Works"
-              typingSpeed={75}
-              showCursor={false}
+              typingSpeed={50}
+              showCursor={true}
+              cursorClassName="text-blue-400"
               loop={true}
               startOnVisible={true}
-              pauseDuration={2000}
-              deletingSpeed={50}
+              initialDelay={800}
+              pauseDuration={3000}
+              deletingSpeed={30}
             />
           </h2>
           
