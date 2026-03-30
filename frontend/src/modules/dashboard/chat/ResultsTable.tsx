@@ -8,22 +8,19 @@ export default function ResultsTable() {
     ["Sarah Johnson", "$199.99"],
   ];
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ background: "rgba(18,18,18,0.6)", border: "1px solid rgba(255,255,255,0.08)" }}
-    >
-      <table className="w-full">
-        <thead style={{ background: "rgba(30,30,30,0.8)" }}>
-          <tr className="text-[0.75rem] uppercase tracking-wider">
-            <th className="text-left p-3">Customer Name</th>
-            <th className="text-left p-3">Total Spent</th>
+    <div className="rounded-[10px] overflow-hidden bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]">
+      <table className="w-full text-left border-collapse">
+        <thead className="bg-[#111111] border-b border-[rgba(255,255,255,0.05)]">
+          <tr className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#888888]">
+            <th className="p-3 font-medium">Customer Name</th>
+            <th className="p-3 font-medium">Total Spent</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, idx) => (
-            <tr key={idx} className="text-sm border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+            <tr key={idx} className="text-[13px] text-[#f0f0f0] border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-[rgba(255,255,255,0.02)] transition-colors">
               <td className="p-3">{r[0]}</td>
-              <td className="p-3">{r[1]}</td>
+              <td className="p-3 font-mono">{r[1]}</td>
             </tr>
           ))}
         </tbody>
@@ -31,5 +28,3 @@ export default function ResultsTable() {
     </div>
   );
 }
-
-

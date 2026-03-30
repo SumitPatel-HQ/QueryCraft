@@ -2,18 +2,8 @@
 
 export default function SQLCodeBlock({ code }: { code: string }) {
   return (
-    <pre
-      className="rounded-xl p-5 overflow-x-auto text-sm"
-      style={{
-        background: "rgba(18,18,18,0.95)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        color: "#A5B4FC",
-        lineHeight: 1.6,
-      }}
-    >
+    <pre className="rounded-[10px] p-4 overflow-x-auto text-[13px] bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] text-[#f0f0f0] font-mono leading-relaxed custom-scrollbar">
       <code>{code}</code>
     </pre>
   );
 }
-
-

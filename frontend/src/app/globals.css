@@ -45,51 +45,50 @@
 :root {
   --radius: 0.75rem;
 
-  /* Material Black Color System */
-  --background: #000000;
-  --foreground: rgba(255, 255, 255, 0.87);
-  --card: rgba(30, 30, 30, 0.95);
-  --card-foreground: rgba(255, 255, 255, 0.87);
-  --popover: rgba(30, 30, 30, 0.95);
-  --popover-foreground: rgba(255, 255, 255, 0.87);
-  --primary: #6366F1;
-  --primary-foreground: rgba(255, 255, 255, 0.87);
-  --secondary: #8B5CF6;
-  --secondary-foreground: rgba(255, 255, 255, 0.87);
-  --muted: rgba(45, 45, 45, 0.6);
-  --muted-foreground: rgba(255, 255, 255, 0.60);
-  --accent: rgba(99, 102, 241, 0.15);
-  --accent-foreground: rgba(255, 255, 255, 0.87);
-  --destructive: #EF4444;
+  /* Strict Monochrome Color System */
+  --background: #0a0a0a;
+  --foreground: #f0f0f0;
+
+  --card: #111111;
+  --card-foreground: #f0f0f0;
+
+  --surface-elevated: #1a1a1a;
+  --surface-active: #222222;
+
+  --popover: #111111;
+  --popover-foreground: #f0f0f0;
+
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+
+  --secondary: #888888;
+  --secondary-foreground: #0a0a0a;
+
+  --tertiary: #444444;
+
+  --muted: #111111;
+  --muted-foreground: #888888;
+
+  --accent: #222222;
+  --accent-foreground: #ffffff;
+
   --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: #6366F1;
+  --input: rgba(255, 255, 255, 0.10);
+  --ring: #ffffff;
 
-  /* Chart colors */
-  --chart-1: #6366F1;
-  --chart-2: #8B5CF6;
-  --chart-3: #60A5FA;
-  --chart-4: #34D399;
-  --chart-5: #FBBF24;
+  --trend-positive: #d0d0d0;
+  --trend-negative: #666666;
 
-  /* Sidebar colors */
-  --sidebar: rgba(18, 18, 18, 0.95);
-  --sidebar-foreground: rgba(255, 255, 255, 0.87);
-  --sidebar-primary: #6366F1;
-  --sidebar-primary-foreground: rgba(255, 255, 255, 0.87);
-  --sidebar-accent: rgba(45, 45, 45, 0.6);
-  --sidebar-accent-foreground: rgba(255, 255, 255, 0.87);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #6366F1;
+  /* Chart colors - monochrome */
+  --chart-1: #ffffff;
+  --chart-2: #d0d0d0;
+  --chart-3: #888888;
+  --chart-4: #444444;
+  --chart-5: #222222;
 
-  /* Custom properties for design system */
-  --surface-elevated: #1E1E1E;
-  --surface-elevated-2: #2D2D2D;
-  --text-primary: rgba(255, 255, 255, 0.87);
-  --text-secondary: rgba(255, 255, 255, 0.60);
-  --text-tertiary: rgba(255, 255, 255, 0.38);
-  --gradient-primary: linear-gradient(135deg, #6366F1, #8B5CF6);
-  --gradient-secondary: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+  /* Typography */
+  --font-inter: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-jetbrains-mono: 'Geist Mono', monospace;
 }
 
 @layer base {

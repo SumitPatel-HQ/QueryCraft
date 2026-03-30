@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
 import { Toaster } from "@/components/ui/sonner";
 import { RouteSyncer } from "@/components/route-syncer";
 import "./globals.css";
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-inter", /* Keep variable name for CSS consistency or rename --font-geist */
   weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+  variable: "--font-jetbrains-mono", /* Keep variable name for CSS consistency or rename */
   weight: ["400", "500", "600"],
 });
 
@@ -35,7 +35,7 @@ export default function RootLayout({
     <ClerkProvider ui={ui}>
       <html lang="en" className="dark">
         <body
-          className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans`}
+          className={`${geist.variable} ${geistMono.variable} antialiased font-sans`}
         >
           {children}
           <RouteSyncer />

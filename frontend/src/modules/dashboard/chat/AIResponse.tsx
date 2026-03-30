@@ -1,69 +1,82 @@
 "use client";
 
+import { CheckCircle2, Clock, Code2, Copy, Download, ThumbsUp, ThumbsDown, Edit2, Lightbulb, Table2 } from "lucide-react";
 import SQLCodeBlock from "./SQLCodeBlock";
 import ResultsTable from "./ResultsTable";
+import { Button } from "@/components/ui/button";
 
 export default function AIResponse() {
   return (
-    <div
-      className="self-start max-w-full rounded-[16px] rounded-tl-[16px] rounded-br-[16px] p-6"
-      style={{
-        background: "rgba(30,30,30,0.6)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255,255,255,0.08)",
-      }}
-    >
-      <div className="text-sm font-semibold mb-3">📝 Generated SQL:</div>
-      <SQLCodeBlock
-        code={`SELECT c.customer_name, SUM(o.total_amount) AS total_spent\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_name\nORDER BY total_spent DESC\nLIMIT 10;`}
-      />
+    <div className="self-start max-w-[85%] bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-6 shadow-sm">
+      
+      {/* SQL Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-[12px] font-medium text-[#f0f0f0] mb-3">
+          <Code2 size={14} className="text-[#888888]" />
+          Generated SQL
+        </div>
+        <SQLCodeBlock
+          code={`SELECT c.customer_name, SUM(o.total_amount) AS total_spent\nFROM customers c\nJOIN orders o ON o.customer_id = c.customer_id\nGROUP BY c.customer_name\nORDER BY total_spent DESC\nLIMIT 10;`}
+        />
+      </div>
 
-      <div className="mt-4">
-        <div className="text-sm font-semibold mb-2">💡 Explanation:</div>
-        <p className="text-sm text-[rgba(255,255,255,0.60)]">
+      {/* Explanation Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-[12px] font-medium text-[#f0f0f0] mb-2">
+          <Lightbulb size={14} className="text-[#888888]" />
+          Explanation
+        </div>
+        <p className="text-[13px] text-[#888888] leading-relaxed">
           This query finds the top 10 customers by calculating their total spending. It joins the
           customers and orders tables, groups by customer, sums their order amounts, and sorts in
           descending order.
         </p>
       </div>
 
-      <div className="mt-4 flex gap-4 items-center text-xs">
-        <span className="text-[#10B981]">✓ 92% Confidence</span>
-        <span className="text-[rgba(255,255,255,0.60)]">Generated in 0.8s</span>
+      {/* Metadata Indicators */}
+      <div className="flex items-center gap-4 text-[11px] text-[#444444] mb-6 font-medium tracking-tight">
+        <span className="flex items-center gap-1.5 text-[#f0f0f0]">
+          <CheckCircle2 size={12} strokeWidth={2.5} />
+          92% Confidence
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Clock size={12} />
+          Generated in 0.8s
+        </span>
       </div>
 
-      <div className="mt-4">
-        <div className="text-sm font-semibold mb-3">📊 Results (10 rows):</div>
+      {/* Results Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-[12px] font-medium text-[#f0f0f0] mb-3">
+          <Table2 size={14} className="text-[#888888]" />
+          Results <span className="text-[#444444] font-normal">(10 rows)</span>
+        </div>
         <ResultsTable />
       </div>
 
-      <div className="mt-4 flex gap-2">
-        {[
-          "Edit SQL",
-          "Copy SQL",
-          "Export CSV",
-        ].map((b) => (
-          <button
-            key={b}
-            className="px-3 py-1.5 rounded-lg text-sm"
-            style={{
-              color: "#8B5CF6",
-              border: "1px solid rgba(139,92,246,0.4)",
-              background: "transparent",
-            }}
-          >
-            {b}
-          </button>
-        ))}
-        <div className="ml-2 flex items-center gap-2 text-lg" aria-label="Feedback">
-          <button aria-label="Thumbs up">👍</button>
-          <button aria-label="Thumbs down">👎</button>
+      {/* Actions Section */}
+      <div className="flex items-center justify-between pt-4 border-t border-[rgba(255,255,255,0.08)]">
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" className="h-8 text-[12px] gap-1.5">
+            <Edit2 size={12} /> Edit SQL
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 text-[12px] gap-1.5">
+            <Copy size={12} /> Copy SQL
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 text-[12px] gap-1.5">
+            <Download size={12} /> Export CSV
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#888888] hover:text-[#f0f0f0]">
+            <ThumbsUp size={14} />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#888888] hover:text-[#f0f0f0]">
+            <ThumbsDown size={14} />
+          </Button>
         </div>
       </div>
-
-      <div className="mt-3 text-[0.75rem] text-[rgba(255,255,255,0.38)]">2:30 PM</div>
     </div>
   );
 }
-
-

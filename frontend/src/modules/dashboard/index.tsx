@@ -1,189 +1,123 @@
 "use client";
 
+import { 
+  MessageSquare, 
+  Database, 
+  Upload, 
+  Search, 
+  AlertCircle 
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 export default function DashboardHome() {
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
-      <section
-        className="relative rounded-2xl p-10 overflow-hidden"
-        style={{
-          background: "rgba(30,30,30,0.6)",
-          backdropFilter: "blur(10px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute -right-20 -top-20 w-[400px] h-[400px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%)",
-            filter: "blur(80px)",
-          }}
-        />
-        <h1 className="text-4xl font-black">Welcome to QueryCraft 👋</h1>
-        <p className="mt-3 text-lg text-[rgba(255,255,255,0.60)]">
-          Ask questions about your data in plain English
-        </p>
-
-        <div className="mt-8 flex flex-wrap gap-10">
-          {[
-            { label: "Queries Remaining", value: "15/20", icon: "💬" },
-            { label: "Databases Available", value: "3", icon: "📊" },
-            { label: "Recent Queries", value: "12", icon: "📈" },
-          ].map((s) => (
-            <div key={s.label} className="flex items-center gap-4">
-              <div
-                className="h-10 w-10 rounded-xl grid place-items-center text-lg"
-                style={{ background: "var(--gradient-primary)" }}
-                aria-hidden
-              >
-                {s.icon}
-              </div>
-              <div>
-                <div className="text-2xl font-bold gradient-text">{s.value}</div>
-                <div className="text-sm text-[rgba(255,255,255,0.60)]">{s.label}</div>
-              </div>
-            </div>
-          ))}
+    <div className="max-w-[1200px] mx-auto flex flex-col gap-10 pb-12">
+      {/* Top Bar */}
+      <header>
+        <h1 className="text-[20px] font-semibold text-[#f0f0f0] tracking-tight leading-tight">Overview</h1>
+        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#444444] mt-1">
+          Performance Insights
         </div>
-      </section>
+      </header>
 
-      <section>
-        <h2 className="text-2xl font-bold mb-5">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { title: "+ New Query", desc: "Start a fresh question", icon: "💬" },
-            { title: "Browse Databases", desc: "Explore your data", icon: "📊" },
-            { title: "Upload Data", desc: "Upload CSV or files", icon: "📤" },
-          ].map((a) => (
-            <button
-              key={a.title}
-              className="rounded-xl p-8 text-left transition-transform"
-              style={{
-                background: "rgba(30,30,30,0.6)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
-              onClick={() => {}}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = "translateY(-8px) scale(1.02)")
-              }
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-            >
-              <div
-                className="w-14 h-14 rounded-xl grid place-items-center text-2xl mb-5"
-                style={{ background: "var(--gradient-primary)" }}
-                aria-hidden
-              >
-                {a.icon}
-              </div>
-              <div className="text-[rgba(255,255,255,0.87)] text-lg font-semibold">
-                {a.title}
-              </div>
-              <div className="text-sm text-[rgba(255,255,255,0.60)] mt-2">{a.desc}</div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-2xl font-bold">Recent Queries</h2>
-          <button className="text-sm text-[#8B5CF6]">View All →</button>
-        </div>
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{
-            background: "rgba(30,30,30,0.6)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <div className="p-8 text-center text-[rgba(255,255,255,0.60)]">
-            No queries yet. Start by asking a question about your data.
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-2xl font-bold">Connected Databases</h2>
-          <button
-            className="px-4 py-2 rounded-lg text-sm"
-            style={{
-              color: "#8B5CF6",
-              border: "1px solid rgba(139,92,246,0.4)",
-              background: "transparent",
-            }}
+      {/* Stats Row */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {[
+          { label: "Queries Remaining", value: "15 / 20" },
+          { label: "Databases Available", value: "3" },
+          { label: "Recent Queries", value: "12" },
+        ].map((stat) => (
+          <div 
+            key={stat.label} 
+            className="bg-[#111111] p-5 rounded-[10px] border border-[rgba(255,255,255,0.08)] relative overflow-hidden"
           >
-            + Add Database
+            <div className="text-[#444444] text-[11px] font-medium uppercase tracking-[0.08em] mb-3">
+              {stat.label}
+            </div>
+            <div className="text-[26px] font-bold font-mono text-[#f0f0f0] tracking-tight">
+              {stat.value}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Quick Actions */}
+      <section>
+        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#444444] mb-4">
+          Quick Actions
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {[
+            { title: "New Query", desc: "Start a fresh question", icon: MessageSquare },
+            { title: "Browse Databases", desc: "Explore your data context", icon: Database },
+            { title: "Upload Data", desc: "Add CSVs or raw files", icon: Upload },
+          ].map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.title}
+                className="group flex flex-col items-start text-left bg-[#111111] border border-[rgba(255,255,255,0.08)] p-5 rounded-[10px] transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer outline-none focus-visible:border-white focus-visible:ring-1 focus-visible:ring-white"
+              >
+                <div className="text-[#888888] mb-4 transition-colors group-hover:text-[#f0f0f0]">
+                  <Icon size={20} strokeWidth={2} />
+                </div>
+                <div className="text-[14px] font-semibold text-[#f0f0f0]">
+                  {action.title}
+                </div>
+                <div className="text-[12px] text-[#888888] mt-1">
+                  {action.desc}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Recent Queries */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[14px] font-semibold text-[#f0f0f0]">Recent Queries</h2>
+          <button className="text-[12px] text-[#888888] hover:text-[#f0f0f0] transition-colors cursor-pointer">
+            View All →
           </button>
         </div>
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        
+        {/* Empty State */}
+        <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] py-16 flex flex-col items-center justify-center text-center px-4 animate-in fade-in slide-in-from-bottom-[8px] duration-300 delay-100 fill-mode-both">
+          <Search size={32} strokeWidth={1.5} className="text-[#444444] mb-4" />
+          <h3 className="text-[16px] font-semibold text-[#f0f0f0] mb-2">No queries yet</h3>
+          <p className="text-[14px] text-[#888888] max-w-[36ch] mx-auto mb-6">
+            Get started by asking a question about your connected data sources.
+          </p>
+          <Button variant="default">New Query</Button>
+        </div>
+      </section>
+
+      {/* Connected Databases */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[14px] font-semibold text-[#f0f0f0]">Connected Databases</h2>
+          <Button variant="ghost" size="sm">+ Add Database</Button>
+        </div>
+        
+        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-xl p-6 transition-transform cursor-pointer"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(30,30,30,0.9), rgba(45,45,45,0.5))",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
+            <div 
+              key={i} 
+              className="min-w-[280px] bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4 flex flex-col hover:-translate-y-1 hover:shadow-md transition-all cursor-pointer"
             >
-              <div className="flex items-start justify-between">
-                <div
-                  className="w-12 h-12 rounded-xl grid place-items-center"
-                  style={{ background: "var(--gradient-primary)" }}
-                  aria-hidden
-                >
-                  📊
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                  <span className="text-[12px] text-[#f0f0f0] font-medium leading-none">Active</span>
                 </div>
-                <div
-                  className="text-xs px-2 py-1 rounded-md"
-                  style={{
-                    background: "rgba(16,185,129,0.15)",
-                    color: "#10B981",
-                  }}
-                >
-                  ✓ Connected
-                </div>
+                <Database size={14} className="text-[#444444]" />
               </div>
-              <div className="mt-4 text-[1.125rem] font-semibold">
-                {i === 1
-                  ? "E-commerce Database"
-                  : i === 2
-                  ? "Analytics Warehouse"
-                  : "Sample Database"}
+              <div className="text-[14px] font-semibold text-[#f0f0f0] mb-1">
+                {i === 1 ? "E-commerce Production" : i === 2 ? "Analytics Warehouse" : "Local Test DB"}
               </div>
-              <div className="text-sm text-[rgba(255,255,255,0.60)] mt-1">
-                {i === 1 ? "PostgreSQL" : i === 2 ? "MySQL" : "SQLite"}
-              </div>
-              <div className="mt-5 flex gap-5 text-sm">
-                <div>🗃️ 45 tables</div>
-                <div>⏱️ 2h ago</div>
-              </div>
-              <div className="mt-5 flex gap-2">
-                <button
-                  className="px-3 py-1.5 rounded-lg text-sm"
-                  style={{
-                    color: "#8B5CF6",
-                    border: "1px solid rgba(139,92,246,0.4)",
-                    background: "transparent",
-                  }}
-                >
-                  View Schema
-                </button>
-                <button
-                  className="px-3 py-1.5 rounded-lg text-sm"
-                  style={{
-                    color: "#8B5CF6",
-                    border: "1px solid rgba(139,92,246,0.4)",
-                    background: "transparent",
-                  }}
-                >
-                  New Query
-                </button>
+              <div className="text-[12px] text-[#888888]">
+                {i === 1 ? "PostgreSQL" : i === 2 ? "Snowflake" : "SQLite"}
               </div>
             </div>
           ))}
