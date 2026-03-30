@@ -85,6 +85,7 @@ jspm_packages/
 # Guidelines (internal docs)
 .guidelines/
 .agents/
-.skills/
+.doc/
 .claude
 
+agents.md
