@@ -17,6 +17,10 @@ class Settings:
     
     # CORS Configuration
     CORS_ORIGINS: list = ["http://localhost:3000"]
+
+    # Clerk authentication
+    CLERK_JWKS_URL: str = os.getenv("CLERK_JWKS_URL", "")
+    CLERK_ISSUER: str = os.getenv("CLERK_ISSUER", "")
     
     # Paths
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

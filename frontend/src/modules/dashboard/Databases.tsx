@@ -1,97 +1,122 @@
 "use client";
 
-import { Database, Settings, Trash2, LayoutTemplate, Network, Plus, Play } from "lucide-react";
+import { useState } from "react";
+import { Database, Upload, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
+import DatabaseUploadModal from "@/components/database/DatabaseUploadModal";
+import DatabaseCard from "@/components/database/DatabaseCard";
+import type { DatabaseResponse, DatabaseUploadResponse } from "@/types/api";
 
-export default function DatabasesView() {
-  return (
-    <div className="max-w-[1200px] mx-auto pb-12">
-      <header className="flex items-end justify-between mb-8">
-        <div>
-          <h1 className="text-[20px] font-semibold text-[#f0f0f0] tracking-tight leading-tight">My Databases</h1>
-          <p className="mt-1 text-[12px] text-[#888888] font-medium">
-            3 databases connected
-          </p>
-        </div>
-        <Button variant="default">
-          <Plus size={16} />
-          Add Database
-        </Button>
-      </header>
-
-      <div className="flex flex-col gap-5">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="group flex flex-col bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-5 transition-all hover:shadow-md hover:border-[rgba(255,255,255,0.15)]"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-[8px] bg-[#1a1a1a] border border-[rgba(255,255,255,0.05)] flex items-center justify-center">
-                  <Database size={20} className="text-[#f0f0f0]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h2 className="text-[16px] font-semibold text-[#f0f0f0] leading-tight">
-                      {i === 1 ? "E-commerce Production" : i === 2 ? "Analytics Warehouse" : "Local Test DB"}
-                    </h2>
-                    <div className="w-1.5 h-1.5 rounded-full bg-white ml-1" title="Active" />
-                  </div>
-                  <div className="text-[12px] text-[#888888]">
-                    {i === 1 ? "PostgreSQL • ecommerce.acme.com" : i === 2 ? "Snowflake • us-east-1.snowflakecomputing.com" : "SQLite • local"}
-                  </div>
-                  <div className="text-[12px] text-[#444444] mt-1 font-mono">
-                    Last queried: 2h ago
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 !p-0">
-                  <Settings size={14} />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 !p-0 hover:text-red-400">
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-5 mb-5 h-px w-full bg-[rgba(255,255,255,0.08)]" />
-
-            {/* Metadata chips */}
-            <div className="flex flex-wrap gap-4 mb-5">
-              {[
-                { label: "45 tables", icon: LayoutTemplate },
-                { label: "Schema synced 1d ago", icon: Network },
-                { label: "128 queries this week", icon: Play },
-              ].map((meta, idx) => {
-                const MetaIcon = meta.icon;
-                return (
-                  <div key={idx} className="flex items-center gap-1.5 text-[12px] text-[#444444]">
-                    <MetaIcon size={14} />
-                    <span>{meta.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3">
-              <Button variant="ghost" size="sm" className="h-8 text-[12px]">View Schema</Button>
-              <Button variant="ghost" size="sm" className="h-8 text-[12px]">View ERD</Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 text-[12px] text-white border-[rgba(255,255,255,0.25)] hover:border-white"
-              >
-                New Query
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-[12px]">Settings</Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+interface DatabasesViewProps {
+  databases: DatabaseResponse[];
+  error?: string;
 }
 
+export default function DatabasesView({ databases: initialDatabases, error }: DatabasesViewProps) {
+  const router = useRouter();
+  const api = useApi();
+  const [databases, setDatabases] = useState<DatabaseResponse[]>(initialDatabases);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  const handleUploadSuccess = (data: DatabaseUploadResponse) => {
+    void data.database_id;
+    // Refresh the page to show the new database
+    router.refresh();
+  };
+
+  const handleDelete = async (id: number) => {
+    await api.deleteDatabase(id);
+    setDatabases((prev) => prev.filter((db) => db.id !== id));
+  };
+
+  const filteredDatabases = databases.filter((db) =>
+    db.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    db.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <>
+      <div className="max-w-[1200px] mx-auto flex flex-col gap-8 pb-12">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[20px] font-semibold text-[#f0f0f0] tracking-tight leading-tight">
+              Databases
+            </h1>
+            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#444444] mt-1">
+              {databases.length} Total
+            </div>
+          </div>
+          <Button
+            onClick={() => setUploadModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload size={16} />
+            Upload Database
+          </Button>
+        </header>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-900/20 border border-red-900/50 rounded-[10px] p-4 text-red-400 text-[14px]">
+            <strong>Error loading databases:</strong> {error}
+          </div>
+        )}
+
+        {/* Search */}
+        {databases.length > 0 && (
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#666666]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search databases..."
+              className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] pl-12 pr-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.2)]"
+            />
+          </div>
+        )}
+
+        {/* Databases Grid */}
+        {filteredDatabases.length === 0 ? (
+          <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] py-16 flex flex-col items-center justify-center text-center px-4">
+            <Database size={48} strokeWidth={1.5} className="text-[#444444] mb-4" />
+            <h3 className="text-[16px] font-semibold text-[#f0f0f0] mb-2">
+              {searchQuery ? "No databases found" : "No databases uploaded"}
+            </h3>
+            <p className="text-[14px] text-[#888888] max-w-[36ch] mx-auto mb-6">
+              {searchQuery
+                ? "Try adjusting your search query"
+                : "Upload a database to start querying with natural language"}
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => setUploadModalOpen(true)}>
+                <Upload size={16} className="mr-2" />
+                Upload Database
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredDatabases.map((database) => (
+              <DatabaseCard
+                key={database.id}
+                database={database}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <DatabaseUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
+    </>
+  );
+}
