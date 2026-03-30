@@ -38,7 +38,7 @@ export default function HomePage() {
         darkGridColor="#424242"
         beamColor="rgba(217, 70, 239, 0.8)"
         darkBeamColor="rgba(217, 70, 239, 0.8)"
-        interactive={true}
+        interactive={false}
       />
       <div className="relative z-10 w-full overflow-hidden">
         <Navigation isAuthenticated={isAuthenticated} isLoading={isLoading} />

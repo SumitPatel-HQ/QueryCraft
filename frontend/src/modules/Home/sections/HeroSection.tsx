@@ -14,8 +14,8 @@ interface HeroSectionProps {
 
 export function HeroSection({ onCTAClick, onSignUpClick }: HeroSectionProps) {
   return (
-    <section id="hero" className="relative overflow-hidden pt-8 sm:pt-12 pb-24 sm:pb-32 px-4">
-      <div className="max-w-7xl mx-auto">
+    <section id="hero" className="relative overflow-hidden min-h-screen flex flex-col items-center justify-center px-4 pt-4 sm:pt-6 lg:pt-8 pb-12 sm:pb-16 lg:pb-20">
+      <div className="max-w-7xl mx-auto w-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
