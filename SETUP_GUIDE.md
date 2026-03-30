@@ -1,4 +1,4 @@
-# 🚀 QueryCraft 2.0 - Setup Guide
+# 🚀 QueryCraft - Setup Guide
 
 ## 📋 Quick Setup Instructions
 
@@ -110,16 +110,8 @@ python main.py
 ### **Required Environment Variables**
 
 Create `backend/.env` file:
-```env
-# Gemini AI API Key (Required)
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Database Configuration
-DATABASE_URL=postgresql://querycraft_user:querycraft_pass@localhost:5432/querycraft_main
-
-# Optional Configuration
-LLM_TIMEOUT=10
-GEMINI_MODEL=gemini-2.5-flash
+```
+Check backend/.env.example
 ```
 
 
@@ -244,25 +236,6 @@ npm start
 
 ---
 
-## 📁 **Project Structure**
-```
-QueryCraft2.0/
-├── backend/           # FastAPI backend
-│   ├── database/         # Database management
-│   ├── routers/          # API endpoints  
-│   ├── services/         # Business logic
-│   ├── uploads/          # User databases
-│   └── main.py           # Application entry
-├── core_ai_services/     # AI/ML modules
-│   ├── llm/             # LLM SQL generation
-│   ├── nl_to_sql/       # Natural language processing
-│   └── schema_introspection/ # Database analysis
-├── frontend/             # React frontend
-└── docker-compose.yml    # Docker configuration
-```
-
----
-
 ## ✅ **Verification Checklist**
 
 - [ ] Python 3.11+ installed
@@ -290,13 +263,3 @@ When everything is working correctly:
 
 ---
 
-## 📞 **Support**
-
-If you encounter issues:
-1. Check the troubleshooting section above
-2. Verify all prerequisites are installed
-3. Ensure API key is correct and valid
-4. Check Docker containers are running: `docker ps`
-5. Review backend logs for error details
-
-**QueryCraft 2.0 is now ready to use! 🚀**
