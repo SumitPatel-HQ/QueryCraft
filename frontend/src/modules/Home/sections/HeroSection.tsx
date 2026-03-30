@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { TypingDemo } from "../components/TypingDemo";
 import { AuroraTextEffect } from "@/components/lightswind/aurora-text-effect";
-import RippleButton from "@/components/lightswind/ripple-button";
 import { AnimatedScrollButton } from "@/components/ui/animated-scroll-button";
 import ShinyText from "@/components/ui/ShinyText";
 
@@ -54,13 +53,14 @@ export function HeroSection({ onCTAClick, onSignUpClick }: HeroSectionProps) {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-10 px-4"
           >
-            <RippleButton
-              text="Try Demo"
+            <Button
+              size="lg"
               onClick={onCTAClick}
-              bgColor="linear-gradient(135deg, #6366F1, #8B5CF6)"
-              circleColor="rgba(168, 85, 247, 0.6)"
-              className="shadow-glow text-sm sm:text-md h-11 sm:h-12 px-5 sm:px-6 font-semibold  sm:w-auto"
-            />
+              className="shadow-md text-sm sm:text-md h-11 sm:h-12 px-8 sm:px-10 font-bold bg-white text-black hover:bg-white/90 transition-all duration-300 hover:scale-[1.02] active:scale-95 rounded-xl border-none"
+            >
+              Try Demo
+            </Button>
+
             <Button
               size="lg"
               variant="outline"
