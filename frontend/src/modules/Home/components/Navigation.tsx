@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { DynamicNavigation } from "@/components/lightswind/dynamic-navigation";
 import ShinyText from "@/components/ui/ShinyText";
@@ -80,8 +81,9 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
 
   return (
     <nav
-      className={`sticky top-6 sm:top-8 z-50 transition-transform duration-300 ${isVisible ? "translate-y-0" : "-translate-y-[120%]"
-        }`}
+      className={`sticky top-6 sm:top-8 z-50 transition-transform duration-300 ${
+        isVisible ? "translate-y-0" : "-translate-y-[120%]"
+      }`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
@@ -119,27 +121,36 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
             {!isLoading && (
               <>
                 {isAuthenticated ? (
-                  <Button
-                    onClick={() => router.push("/demo")}
-                    className="shadow-md text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-6"
-                  >
-                    Dashboard
-                  </Button>
+                  <div className="flex items-center gap-2 bg-[#1A1A1A] rounded-full px-4 py-1.5 border border-white/10 shadow-lg">
+                    <UserButton
+                      showName
+                      appearance={{
+                        variables: {
+                          colorText: "#ffffff",
+                        },
+                        elements: {
+                          userButtonOuterIdentifier: {
+                            color: "#ffffff",
+                          },
+                        },
+                      }}
+                    />
+                  </div>
                 ) : (
                   <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => router.push("/auth")}
-                      className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs"
-                    >
-                      Sign up
-                    </Button>
-                    <Button
-                      onClick={() => router.push("/auth")}
-                      className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30"
-                    >
-                      <ShinyText text="Log in" speed={2} intensity="high" />
-                    </Button>
+                    <SignUpButton mode="modal">
+                      <Button
+                        variant="ghost"
+                        className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs"
+                      >
+                        Sign up
+                      </Button>
+                    </SignUpButton>
+                    <SignInButton mode="modal">
+                      <Button className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30">
+                        <ShinyText text="Log in" speed={2} intensity="high" />
+                      </Button>
+                    </SignInButton>
                   </>
                 )}
               </>

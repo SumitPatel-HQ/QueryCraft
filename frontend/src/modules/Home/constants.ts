@@ -154,7 +154,7 @@ export const NAV_LINKS = [
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
   { label: "Contact", href: "#contact" },
-  { label: "FAQ", href: "#faq" },
+  // { label: "FAQ", href: "#faq" },
 ];
 
 export const FOOTER_LINKS = {

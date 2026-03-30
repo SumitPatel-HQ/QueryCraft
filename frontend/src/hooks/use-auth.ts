@@ -1,27 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 
-export function useAuth() {
-  const [isLoading] = useState(false);
-  const [isAuthenticated] = useState(false);
-  const [user] = useState(null);
-
-  const signIn = async () => {
-    // TODO: Implement authentication logic
-    console.log("Sign in not implemented");
-  };
-
-  const signOut = async () => {
-    // TODO: Implement sign out logic
-    console.log("Sign out not implemented");
-  };
+export function useAuthProvider() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
 
   return {
-    isLoading,
-    isAuthenticated,
+    isLoaded,
+    isLoading: !isLoaded,
+    isAuthenticated: !!isSignedIn,
     user,
-    signIn,
-    signOut,
+    signOut: () => signOut({ redirectUrl: "/" }),
   };
 }

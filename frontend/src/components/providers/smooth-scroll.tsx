@@ -17,6 +17,25 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     ScrollTrigger.update();
   });
 
+  // Stop scrolling when a Clerk modal is present
+  useEffect(() => {
+    const checkModal = () => {
+      const isModalOpen = !!document.querySelector('.cl-modalBackdrop');
+      if (lenisRef.current?.lenis) {
+        if (isModalOpen) {
+          lenisRef.current.lenis.stop();
+        } else {
+          lenisRef.current.lenis.start();
+        }
+      }
+    };
+
+    const observer = new MutationObserver(checkModal);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <ReactLenis 
       ref={lenisRef} 

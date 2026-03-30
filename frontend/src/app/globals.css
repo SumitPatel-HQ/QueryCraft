@@ -404,3 +404,32 @@
 .animate-shine {
   animation: shine 5s linear infinite;
 }
+/* Auth Modal Centering and Scroll Lock */
+.cl-modalBackdrop {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.cl-rootBox {
+  z-index: 10001 !important;
+}
+
+.cl-modalContent {
+  position: relative !important;
+  margin: 0 !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 10002 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+body:has(.cl-modalBackdrop) {
+  overflow: hidden !important;
+}
