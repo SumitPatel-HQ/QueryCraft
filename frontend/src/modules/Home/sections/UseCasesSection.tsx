@@ -75,7 +75,7 @@ export function UseCasesSection() {
                     className="flex items-start gap-2.5 sm:gap-3 group/item"
                   >
                     <div className="mt-0.5 flex-shrink-0">
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 group-hover/item:text-blue-300 transition-colors" />
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-white/50 group-hover/item:text-white/90 transition-colors" />
                     </div>
                     <span className="text-sm sm:text-base text-white/70 leading-relaxed group-hover:text-white/85 transition-colors">
                       {task}
