@@ -1,4 +1,9 @@
-import { getDatabaseSchema } from "@/lib/api";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
+import type { SchemaDataResponse } from "@/types/api";
 
 type SchemaColumn = {
   name: string;
@@ -10,21 +15,39 @@ type SchemaColumn = {
   };
 };
 
-export default async function ERDPage({
-  params,
-}: {
-  params: Promise<{ dbId: string }>;
-}) {
-  const { dbId } = await params;
+export default function ERDPage() {
+  const params = useParams();
+  const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
 
-  let schema;
-  let error;
+  const [schema, setSchema] = useState<SchemaDataResponse | null>(null);
+  const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const api = useApi();
 
-  try {
-    schema = await getDatabaseSchema(id);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to load ERD data";
+
+  useEffect(() => {
+    async function fetchSchema() {
+      try {
+        const data = await api.getDatabaseSchema(id);
+        setSchema(data);
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : "Failed to load ERD data";
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSchema();
+  }, [id, api]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-white">Loading ERD...</div>
+      </div>
+    );
   }
 
   if (error || !schema) {

@@ -1,23 +1,50 @@
-import { getDatabase, getDatabaseSchema } from "@/lib/api";
-import { Database, Table2 } from "lucide-react";
+"use client";
 
-export default async function DatabaseOverviewPage({
-  params,
-}: {
-  params: Promise<{ dbId: string }>;
-}) {
-  const { dbId } = await params;
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
+import { Database, Table2 } from "lucide-react";
+import type { DatabaseResponse, SchemaDataResponse } from "@/types/api";
+
+export default function DatabaseOverviewPage() {
+  const params = useParams();
+  const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
 
-  let database;
-  let schema;
-  let error;
+  const [database, setDatabase] = useState<DatabaseResponse | null>(null);
+  const [schema, setSchema] = useState<SchemaDataResponse | null>(null);
+  const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const api = useApi();
 
-  try {
-    [database, schema] = await Promise.all([getDatabase(id), getDatabaseSchema(id)]);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to load database";
-    console.error("Error fetching database:", e);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [dbData, schemaData] = await Promise.all([
+          api.getDatabase(id),
+          api.getDatabaseSchema(id),
+        ]);
+        setDatabase(dbData);
+        setSchema(schemaData);
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : "Failed to load database";
+        setError(errorMessage);
+        console.error("Error fetching database:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [id, api]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-white">Loading database overview...</div>
+      </div>
+    );
   }
 
   if (error || !database) {

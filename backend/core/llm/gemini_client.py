@@ -4,7 +4,7 @@ Handles all interactions with Google Gemini API
 """
 import logging
 from typing import Dict, Any, Optional
-import google.generativeai as genai
+from google import genai
 
 from .config import LLMConfig
 
@@ -25,15 +25,12 @@ class GeminiClient:
         # Validate configuration
         LLMConfig.validate()
         
-        # Configure Gemini API
-        genai.configure(api_key=LLMConfig.GEMINI_API_KEY)
+        # Initialize Gemini API client
+        self.client = genai.Client(api_key=LLMConfig.GEMINI_API_KEY)
         
         # Set model and timeout
         self.model_name = LLMConfig.get_model_name(model_name)
         self.timeout = LLMConfig.get_timeout(timeout)
-        
-        # Initialize model
-        self.model = genai.GenerativeModel(self.model_name)
         
         logger.info(f"Initialized Gemini client with model: {self.model_name}")
     
@@ -56,7 +53,10 @@ class GeminiClient:
             logger.info(f"⚡ SENDING REQUEST TO GEMINI...")
             
             # Call Gemini API
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             
             logger.info(f"✅ RECEIVED RESPONSE FROM GEMINI")
             
