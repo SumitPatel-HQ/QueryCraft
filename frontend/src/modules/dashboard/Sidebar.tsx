@@ -31,7 +31,11 @@ function LogoIcon() {
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  onChatClick?: () => void;
+}
+
+export default function Sidebar({ onChatClick }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -63,6 +67,11 @@ export default function Sidebar() {
               <li key={item.to}>
                 <Link
                   href={item.to}
+                  onClick={() => {
+                    if (item.label === "Chat" && onChatClick) {
+                      onChatClick();
+                    }
+                  }}
                   className={[
                     "flex items-center gap-3 h-[40px] px-3 transition-colors rounded-[6px] text-[14px]",
                     isActive
@@ -79,16 +88,23 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 flex flex-col gap-4 border-t border-[rgba(255,255,255,0.08)]">
-        <div className="flex justify-start">
-          <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[rgba(255,255,255,0.1)] flex items-center justify-center text-[#f0f0f0] text-[12px] font-medium tracking-wide">
+      <div className="p-4 flex flex-col gap-3 border-t border-[rgba(255,255,255,0.08)]">
+        <div className="rounded-[10px] border border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] px-2.5 py-2 flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[rgba(255,255,255,0.12)] flex items-center justify-center text-[#f0f0f0] text-[12px] font-medium tracking-wide shrink-0">
             SP
+          </div>
+          <div className="min-w-0">
+            <div className="text-[12px] font-medium text-[#f0f0f0] leading-tight truncate">Workspace User</div>
+            <div className="text-[11px] text-[#666666] leading-tight truncate">Demo Mode</div>
           </div>
         </div>
         <Button
           variant="default"
           className="w-full flex justify-center h-9 font-semibold"
-          onClick={() => router.push("/dashboard/chat")}
+          onClick={() => {
+            router.push("/dashboard/chat");
+            if (onChatClick) onChatClick();
+          }}
         >
           <Plus size={16} />
           New Query

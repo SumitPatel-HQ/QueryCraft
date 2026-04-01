@@ -112,7 +112,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   };
 
   return (
-    <div className="flex flex-col gap-6 min-h-[calc(100vh-220px)] pb-24">
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-220px)] pb-28">
       {!preselectedDatabaseId && availableDatabases.length > 1 && (
         <div>
           <label className="block text-[12px] text-[#888888] mb-2">Select Database</label>
@@ -148,25 +148,17 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       <div className="flex-1" />
 
       <div
-        className="fixed bottom-0 left-0 md:left-55 right-0 z-30 px-6 lg:px-8 pb-0 pt-0 bg-transparent"
+        className="fixed bottom-0 right-0 z-30 px-6 lg:px-8 pb-4 bg-transparent"
+        style={{ left: "var(--chat-left-offset, 0px)" }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <div className={cn(
-          "max-w-250 mx-auto flex items-end gap-3 rounded-3xl px-1 transition-all duration-200",
+          "w-full mx-auto rounded-3xl transition-all duration-200",
           isDraggingFile && "ring-1 ring-white/25 border-white/20"
-        )}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingFile}
-            className="w-11 h-11 rounded-full text-[#888888] hover:text-[#f0f0f0] hover:bg-white/5 shrink-0 flex items-center justify-center transition-all duration-200 disabled:opacity-50"
-          >
-            {uploadingFile ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
-          </Button>
+        )}
+        style={{ maxWidth: "1000px" }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -178,8 +170,19 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
             }}
           />
 
-          <form onSubmit={handleSubmit} className="flex-1 flex items-end gap-3">
-            <div className="flex-1 relative">
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[22px] pl-2 pr-2 py-1.5 flex items-center gap-2 focus-within:border-[rgba(255,255,255,0.15)] transition-colors duration-200">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Upload database file"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile}
+                className="w-9 h-9 rounded-full text-[#888888] hover:text-[#f0f0f0] hover:bg-white/5 shrink-0 self-center flex items-center justify-center transition-all duration-200 disabled:opacity-50"
+              >
+                {uploadingFile ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
+              </Button>
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -197,14 +200,13 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
                   target.style.height = 'auto';
                   target.style.height = `${target.scrollHeight}px`;
                 }}
-                className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[22px] px-6 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.15)] disabled:opacity-50 resize-none overflow-hidden min-h-11 max-h-50 flex items-center"
+                className="flex-1 bg-transparent border-0 px-1 py-2 text-[14px] leading-[1.35] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none disabled:opacity-50 resize-none overflow-hidden min-h-9 max-h-50"
               />
-            </div>
             <Button
               type="submit"
               disabled={loading || !selectedDatabaseId || !question.trim()}
               className={cn(
-                "w-11 h-11 rounded-full p-0 flex items-center justify-center transition-all duration-200 shrink-0",
+                "w-11 h-11 rounded-full p-0 self-center flex items-center justify-center transition-all duration-200 shrink-0",
                 !loading && question.trim() && selectedDatabaseId
                   ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
                   : "bg-[#222222] text-white/20 opacity-50"
@@ -212,6 +214,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
             </Button>
+            </div>
           </form>
         </div>
       </div>

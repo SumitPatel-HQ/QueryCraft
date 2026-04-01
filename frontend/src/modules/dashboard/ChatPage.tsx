@@ -10,7 +10,7 @@ interface ChatPageProps {
 
 export default function ChatPage({ databases, error }: ChatPageProps) {
   return (
-    <div className="max-w-[1000px] mx-auto flex flex-col gap-8 pb-0 min-h-[calc(100vh-64px)]">
+    <div style={{ maxWidth: "1000px" }} className="w-full mx-auto flex flex-col gap-8 pb-0 min-h-[calc(100vh-64px)]">
       <header>
         <h1 className="text-[20px] font-semibold text-[#f0f0f0] tracking-tight leading-tight">
           Query Your Data

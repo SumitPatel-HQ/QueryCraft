@@ -88,3 +88,4 @@ jspm_packages/
 .doc/
 .claude
 
+firebaseconfig.ts
