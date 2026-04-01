@@ -87,6 +87,10 @@ jspm_packages/
 .agents/
 .doc/
 .claude
+.planning/
+
+# Ruff cache
+.ruff_cache/
 
 firebaseconfig.ts
 
