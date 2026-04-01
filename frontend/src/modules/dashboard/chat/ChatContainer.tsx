@@ -30,8 +30,8 @@ export default function ChatContainer() {
         </header>
 
         <div className="flex flex-col gap-8 pb-32">
-          <UserMessage text="Show me top 10 customers by spending" time="2:29 PM" />
-          <AIResponse />
+
+
           <SampleQuestions />
         </div>
       </div>

@@ -95,6 +95,24 @@ export interface DatabaseTablesResponse {
   tables: string[];
 }
 
+export interface QueryHistoryItem {
+  id: number;
+  question: string;
+  sql_query: string | null;
+  success: boolean;
+  result_count: number | null;
+  confidence_score: number | null;
+  execution_time_ms: number | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface DatabaseHistoryResponse {
+  database_id: number;
+  database_name: string;
+  history: QueryHistoryItem[];
+}
+
 // ============================================================================
 // Cache Types
 // ============================================================================

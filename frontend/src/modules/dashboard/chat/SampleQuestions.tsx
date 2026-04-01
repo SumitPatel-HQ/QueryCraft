@@ -8,6 +8,10 @@ const questions = [
   "Customer retention rate by segment",
   "Average order value by category",
   "Top selling products this week",
+  "Repeat customers vs new customers by month",
+  "Geographic distribution of high-value customers",
+  "Average fulfillment time by shipping carrier",
+  "Projected revenue for next quarter",
 ];
 
 export default function SampleQuestions() {

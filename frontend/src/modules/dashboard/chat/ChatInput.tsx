@@ -20,9 +20,7 @@ export default function ChatInput() {
           onSendMessage={handleSend}
           onUploadFile={handleUpload}
         />
-        <div className="text-[11px] text-[#444444] text-center mt-3">
-          QueryCraft uses AI and may produce inaccurate SQL. Always verify before executing destructive operations.
-        </div>
+
       </div>
     </div>
   );

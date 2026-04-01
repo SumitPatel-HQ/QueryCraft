@@ -6,9 +6,10 @@ import type { DatabaseResponse } from "@/types/api";
 interface ChatPageProps {
   databases: DatabaseResponse[];
   error?: string;
+  preselectedDatabaseId?: number;
 }
 
-export default function ChatPage({ databases, error }: ChatPageProps) {
+export default function ChatPage({ databases, error, preselectedDatabaseId }: ChatPageProps) {
   return (
     <div style={{ maxWidth: "1000px" }} className="w-full mx-auto flex flex-col gap-8 pb-0 min-h-[calc(100vh-64px)]">
       <header>
@@ -26,7 +27,7 @@ export default function ChatPage({ databases, error }: ChatPageProps) {
         </div>
       )}
 
-      <QueryInterface databases={databases} />
+      <QueryInterface databases={databases} preselectedDatabaseId={preselectedDatabaseId} />
     </div>
   );
 }

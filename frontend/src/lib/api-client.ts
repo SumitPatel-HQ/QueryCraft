@@ -10,6 +10,7 @@ import type {
   DeleteDatabaseResponse,
   SchemaDataResponse,
   DatabaseTablesResponse,
+  DatabaseHistoryResponse,
   QueryRequest,
   QueryResponse,
   CacheStatsResponse,
@@ -144,6 +145,16 @@ export async function getDatabaseTables(
 ): Promise<DatabaseTablesResponse> {
   return clientFetch<DatabaseTablesResponse>(
     `/api/v1/databases/${databaseId}/tables`,
+    token
+  );
+}
+
+export async function getDatabaseHistory(
+  databaseId: number,
+  token: string | null
+): Promise<DatabaseHistoryResponse> {
+  return clientFetch<DatabaseHistoryResponse>(
+    `/api/v1/databases/${databaseId}/history`,
     token
   );
 }

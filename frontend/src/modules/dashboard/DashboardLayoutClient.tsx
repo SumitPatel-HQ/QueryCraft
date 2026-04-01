@@ -52,7 +52,11 @@ export default function DashboardLayoutClient({
 
         <div
           key={pathname}
-          className={isChatRoute ? "" : "animate-in fade-in slide-in-from-bottom-[6px] duration-120 ease-out fill-mode-both"}
+          className={
+            isChatRoute || pathname.includes("/databases/") 
+              ? "" 
+              : "animate-in fade-in slide-in-from-bottom-[6px] duration-120 ease-out fill-mode-both"
+          }
         >
           {children}
         </div>

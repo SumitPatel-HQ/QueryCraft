@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Send, Loader2, Database as DatabaseIcon, Paperclip } from "lucide-react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Send, Loader2, Database as DatabaseIcon, Paperclip, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/hooks/use-api"
+import { useChat, type ChatMessage } from "@/hooks/use-chat";
 import { cn } from "@/lib/utils"
 import QueryResults from "./QueryResults"
 import type { DatabaseResponse, QueryResponse } from "@/types/api";
@@ -15,10 +17,19 @@ interface QueryInterfaceProps {
 
 export default function QueryInterface({ databases, preselectedDatabaseId }: QueryInterfaceProps) {
   const api = useApi();
+  const { getSession, createSession, addMessage } = useChat();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionParam = searchParams.get("session");
+  const dbParam = searchParams.get("db");
+  const activeSessionId = sessionParam ? Number(sessionParam) : null;
+  const sessionDbMapStorageKey = "chat_session_db_map";
+  const sessionResultMapStorageKey = "chat_session_result_map";
   const [availableDatabases, setAvailableDatabases] = useState<DatabaseResponse[]>(databases);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(
     preselectedDatabaseId || (databases.length === 1 ? databases[0].id : null)
   );
+
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -26,7 +37,158 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [loadingSession, setLoadingSession] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const readSessionDbMap = useCallback(() => {
+    if (typeof window === "undefined") {
+      return {} as Record<string, number>;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(sessionDbMapStorageKey);
+      if (!raw) {
+        return {} as Record<string, number>;
+      }
+      const parsed = JSON.parse(raw) as Record<string, number>;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {} as Record<string, number>;
+    }
+  }, [sessionDbMapStorageKey]);
+
+  const saveSessionDatabase = useCallback((sessionId: number, databaseId: number) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const current = readSessionDbMap();
+    current[String(sessionId)] = databaseId;
+    window.localStorage.setItem(sessionDbMapStorageKey, JSON.stringify(current));
+  }, [readSessionDbMap, sessionDbMapStorageKey]);
+
+  const readSessionResultMap = useCallback(() => {
+    if (typeof window === "undefined") {
+      return {} as Record<string, QueryResponse>;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(sessionResultMapStorageKey);
+      if (!raw) {
+        return {} as Record<string, QueryResponse>;
+      }
+      const parsed = JSON.parse(raw) as Record<string, QueryResponse>;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {} as Record<string, QueryResponse>;
+    }
+  }, [sessionResultMapStorageKey]);
+
+  const saveSessionResult = useCallback((sessionId: number, response: QueryResponse) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const current = readSessionResultMap();
+    current[String(sessionId)] = response;
+    window.localStorage.setItem(sessionResultMapStorageKey, JSON.stringify(current));
+  }, [readSessionResultMap, sessionResultMapStorageKey]);
+
+  const updateUrlDatabaseParam = useCallback((databaseId: number | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (databaseId) {
+      params.set("db", String(databaseId));
+    } else {
+      params.delete("db");
+    }
+
+    const next = params.toString();
+    router.replace(next ? `/dashboard/chat?${next}` : "/dashboard/chat");
+  }, [router, searchParams]);
+
+  const handleDatabaseSelection = useCallback((databaseId: number | null) => {
+    setSelectedDatabaseId(databaseId);
+
+    if (activeSessionId && databaseId) {
+      saveSessionDatabase(activeSessionId, databaseId);
+    }
+
+    updateUrlDatabaseParam(databaseId);
+  }, [activeSessionId, saveSessionDatabase, updateUrlDatabaseParam]);
+
+  useEffect(() => {
+    const parsedDb = dbParam ? Number(dbParam) : null;
+    const dbFromQuery = parsedDb && !Number.isNaN(parsedDb) ? parsedDb : null;
+
+    let nextDb: number | null = null;
+
+    if (dbFromQuery) {
+      nextDb = dbFromQuery;
+      if (activeSessionId) {
+        saveSessionDatabase(activeSessionId, dbFromQuery);
+      }
+    } else if (activeSessionId) {
+      const map = readSessionDbMap();
+      nextDb = map[String(activeSessionId)] ?? null;
+    } else if (preselectedDatabaseId) {
+      nextDb = preselectedDatabaseId;
+    } else if (databases.length === 1) {
+      nextDb = databases[0].id;
+    }
+
+    setSelectedDatabaseId(nextDb);
+    setQuestion("");
+    if (activeSessionId) {
+      const resultMap = readSessionResultMap();
+      setResult(resultMap[String(activeSessionId)] ?? null);
+    } else {
+      setResult(null);
+    }
+    setUploadMessage(null);
+    setError(null);
+  }, [activeSessionId, dbParam, preselectedDatabaseId, databases, readSessionDbMap, saveSessionDatabase, readSessionResultMap]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSession() {
+      if (!activeSessionId || Number.isNaN(activeSessionId)) {
+        setChatMessages([]);
+        return;
+      }
+
+      setLoadingSession(true);
+      try {
+        const session = await getSession(activeSessionId);
+        if (cancelled) {
+          return;
+        }
+        setChatMessages(
+          session.messages.map((m) => ({
+            id: m.id,
+            session_id: activeSessionId,
+            role: m.role,
+            content: m.content,
+            created_at: m.created_at,
+          }))
+        );
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Failed to load chat session");
+      } finally {
+        if (!cancelled) {
+          setLoadingSession(false);
+        }
+      }
+    }
+
+    void loadSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSessionId, getSession]);
 
   const normalizeDisplayName = (fileName: string) => {
     const nameWithoutExt = fileName.replace(/\.(db|sqlite|sql|csv)$/i, "");
@@ -54,6 +216,17 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       const refreshedDatabases = await api.getDatabases();
       setAvailableDatabases(refreshedDatabases);
       setSelectedDatabaseId(uploadResult.database_id);
+
+      if (!activeSessionId) {
+        const created = await createSession(`Chat: ${displayName}`);
+        saveSessionDatabase(created.id, uploadResult.database_id);
+        router.push(`/dashboard/chat?session=${created.id}&db=${uploadResult.database_id}`);
+        window.dispatchEvent(new Event("chat-sessions-updated"));
+      } else {
+        saveSessionDatabase(activeSessionId, uploadResult.database_id);
+        updateUrlDatabaseParam(uploadResult.database_id);
+      }
+
       setUploadMessage(`Uploaded ${displayName} successfully.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -97,8 +270,65 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     setResult(null);
 
     try {
+      let targetSessionId = activeSessionId;
+      if (!targetSessionId) {
+        const created = await createSession(question.trim().slice(0, 60));
+        targetSessionId = created.id;
+        router.push(`/dashboard/chat?session=${created.id}&db=${selectedDatabaseId}`);
+        window.dispatchEvent(new Event("chat-sessions-updated"));
+      }
+
+      if (!targetSessionId) {
+        throw new Error("Failed to resolve active chat session");
+      }
+
       const response = await api.queryDatabase(selectedDatabaseId, question.trim());
       setResult(response);
+      saveSessionResult(targetSessionId, response);
+
+      const askedQuestion = question.trim();
+      const assistantContent =
+        response.explanation || response.sql_query || "Query executed successfully";
+
+      const tempUserId = -Date.now();
+      const tempAssistantId = tempUserId - 1;
+      const optimisticTimestamp = new Date().toISOString();
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: tempUserId,
+          session_id: targetSessionId,
+          role: "user",
+          content: askedQuestion,
+          created_at: optimisticTimestamp,
+        },
+        {
+          id: tempAssistantId,
+          session_id: targetSessionId,
+          role: "assistant",
+          content: assistantContent,
+          created_at: optimisticTimestamp,
+        },
+      ]);
+
+      void Promise.all([
+        addMessage(targetSessionId, "user", askedQuestion),
+        addMessage(targetSessionId, "assistant", assistantContent),
+      ])
+        .then(([savedUser, savedAssistant]) => {
+          setChatMessages((prev) =>
+            prev.map((message) => {
+              if (message.id === tempUserId) return savedUser;
+              if (message.id === tempAssistantId) return savedAssistant;
+              return message;
+            })
+          );
+          window.dispatchEvent(new Event("chat-sessions-updated"));
+        })
+        .catch((persistError) => {
+          console.error("Failed to persist chat messages:", persistError);
+        });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Query failed");
     } finally {
@@ -113,21 +343,26 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
 
   return (
     <div className="flex flex-col gap-6 min-h-[calc(100vh-220px)] pb-28">
-      {!preselectedDatabaseId && availableDatabases.length > 1 && (
+      {availableDatabases.length > 1 && (
         <div>
           <label className="block text-[12px] text-[#888888] mb-2">Select Database</label>
-          <select
-            value={selectedDatabaseId || ""}
-            onChange={(e) => setSelectedDatabaseId(Number(e.target.value) || null)}
-            className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] px-4 py-3 text-[14px] text-[#f0f0f0] focus:outline-none focus:border-[rgba(255,255,255,0.2)]"
-          >
-            <option value="">Choose a database...</option>
-            {availableDatabases.map((db) => (
-              <option key={db.id} value={db.id}>
-                {db.display_name} ({db.table_count} tables)
-              </option>
-            ))}
-          </select>
+          <div className="relative group">
+            <select
+              value={selectedDatabaseId || ""}
+              onChange={(e) => handleDatabaseSelection(Number(e.target.value) || null)}
+              className="w-full appearance-none bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] pl-4 pr-10 py-3 text-[14px] text-[#f0f0f0] focus:outline-none focus:border-[rgba(255,255,255,0.2)] transition-all cursor-pointer"
+            >
+              <option value="">Choose a database...</option>
+              {availableDatabases.map((db) => (
+                <option key={db.id} value={db.id}>
+                  {db.display_name} ({db.table_count} tables)
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#666666] group-focus-within:text-[#f0f0f0] transition-colors">
+              <ChevronDown size={16} strokeWidth={2.5} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -144,7 +379,30 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           </div>
         </div>
       )}
-      
+
+      {loadingSession && (
+        <div className="text-[12px] text-[#777777]">Loading chat session...</div>
+      )}
+
+      {!loadingSession && chatMessages.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {chatMessages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "rounded-[12px] border px-3 py-2 text-[13px]",
+                message.role === "user"
+                  ? "bg-[#111111] border-[rgba(255,255,255,0.12)] text-[#f0f0f0]"
+                  : "bg-[#0f0f0f] border-[rgba(255,255,255,0.06)] text-[#cccccc]"
+              )}
+            >
+
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!selectedDatabaseId && availableDatabases.length === 0 && (
         <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[20px] py-20 flex flex-col items-center justify-center text-center px-4">
           <DatabaseIcon size={32} className="text-[#444444] mb-4" />

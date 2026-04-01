@@ -15,6 +15,7 @@ import type {
   DeleteDatabaseResponse,
   SchemaDataResponse,
   DatabaseTablesResponse,
+  DatabaseHistoryResponse,
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
@@ -100,6 +101,14 @@ export function useApi() {
     [getAuthToken]
   );
 
+  const getDatabaseHistory = useCallback(
+    async (databaseId: number): Promise<DatabaseHistoryResponse> => {
+      const token = await getAuthToken();
+      return apiClient.getDatabaseHistory(databaseId, token);
+    },
+    [getAuthToken]
+  );
+
   // ============================================================================
   // Query Operations
   // ============================================================================
@@ -134,6 +143,7 @@ export function useApi() {
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,
+    getDatabaseHistory,
     // Query operations
     queryDatabase,
     // Cache operations
@@ -146,6 +156,7 @@ export function useApi() {
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,
+    getDatabaseHistory,
     queryDatabase,
     getCacheStats,
     clearCache,

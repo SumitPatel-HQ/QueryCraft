@@ -84,6 +84,7 @@ export default function AiChatInput({
         <input
           ref={fileInputRef}
           type="file"
+          accept=".db,.sqlite,.sql,.csv"
           className="hidden"
           onChange={(e) => {
             handleFile(e.target.files?.[0])

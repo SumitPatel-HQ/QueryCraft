@@ -8,7 +8,6 @@ const tabs = [
   { to: "schema", label: "📊 Schema" },
   { to: "erd", label: "🗺️ ERD" },
   { to: "chat", label: "💬 Chat" },
-  { to: "settings", label: "⚙️ Settings" },
 ];
 
 export default function DatabaseDetailLayout({
@@ -24,9 +23,9 @@ export default function DatabaseDetailLayout({
   return (
     <div className="flex min-h-screen">
       <aside
-        className="fixed h-screen w-[240px]"
+        className="fixed left-[220px] top-0 h-screen w-[240px] z-10"
         style={{
-          background: "rgba(30,30,30,0.95)",
+          background: "#0a0a0a",
           borderRight: "1px solid rgba(255,255,255,0.08)",
         }}
       >
@@ -35,12 +34,12 @@ export default function DatabaseDetailLayout({
             ← Back to Databases
           </button>
           <div className="mt-3 font-semibold text-white">E-commerce Database</div>
-          <div
-            className="mt-2 inline-block text-xs px-2 py-1 rounded-md"
-            style={{ background: "rgba(16,185,129,0.15)", color: "#10B981" }}
+          <Link 
+            href={`/dashboard/chat?db=${dbId}`}
+            className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-[#f0f0f0] text-black rounded-[8px] text-[13px] font-semibold hover:bg-white transition-colors"
           >
-            ✓ Connected
-          </div>
+            New Chat
+          </Link>
         </div>
         <nav className="mt-4">
           {tabs.map((t) => {
@@ -66,7 +65,7 @@ export default function DatabaseDetailLayout({
         </nav>
       </aside>
 
-      <main className="ml-[240px] w-full p-8" style={{ background: "#121212" }}>
+      <main className="ml-[240px] flex-1 p-8" style={{ background: "#121212" }}>
         {children}
       </main>
     </div>

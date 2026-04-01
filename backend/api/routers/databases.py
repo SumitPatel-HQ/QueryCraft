@@ -7,7 +7,7 @@ import os
 import logging
 
 from api.schemas import DatabaseResponse
-from database.models import Database as DatabaseModel
+from database.models import Database as DatabaseModel, QueryHistory
 from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services.upload_handler import DatabaseUploadHandler
@@ -336,4 +336,52 @@ async def get_database_tables(database_id: int, user: dict = Depends(get_current
             "file_path": database.file_path,
             "tables": list(schema_data.keys()) if schema_data else [],
             "table_count": len(schema_data) if schema_data else 0,
+        }
+
+
+@router.get("/{database_id}/history")
+async def get_database_history(database_id: int, user: dict = Depends(get_current_user)):
+    """Get query history for a specific database"""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching query history for database {database_id}")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+
+        # Verify database ownership
+        database = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
+        )
+        if not database:
+            raise HTTPException(status_code=404, detail="Database not found")
+
+        history = (
+            db.query(QueryHistory)
+            .filter(QueryHistory.database_id == database_id)
+            .filter(QueryHistory.user_id == user_id)
+            .order_by(QueryHistory.created_at.desc())
+            .limit(50)
+            .all()
+        )
+
+        return {
+            "database_id": database_id,
+            "database_name": database.display_name,
+            "history": [
+                {
+                    "id": h.id,
+                    "question": h.question,
+                    "sql_query": h.sql_query,
+                    "success": h.success,
+                    "result_count": h.result_count,
+                    "confidence_score": h.confidence_score,
+                    "execution_time_ms": h.execution_time_ms,
+                    "error_message": h.error_message,
+                    "created_at": h.created_at.isoformat() if h.created_at else None,
+                }
+                for h in history
+            ],
         }

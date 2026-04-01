@@ -2,6 +2,7 @@
 
 import { Code, Clock, TrendingUp, Sparkles } from "lucide-react";
 import type { QueryResponse } from "@/types/api";
+import SQLCodeBlock from "@/modules/dashboard/chat/SQLCodeBlock";
 
 interface QueryResultsProps {
   result: QueryResponse;
@@ -50,7 +51,7 @@ export default function QueryResults({ result }: QueryResultsProps) {
 
       <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4">
         <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#888888] mb-3">Generated SQL</div>
-        <pre className="text-[13px] text-[#f0f0f0] font-mono overflow-x-auto">{result.sql_query}</pre>
+        <SQLCodeBlock code={result.sql_query} />
       </div>
 
       {result.explanation && (

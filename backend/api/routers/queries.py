@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["queries"])
 
+
 # Import query cache
 try:
     from api.services.query_cache import query_cache
@@ -138,6 +139,10 @@ async def query_database(
 
             # Process query
             query_result = db_processor.process_query(request.question)
+
+            if query_result.get("blocked"):
+                raise HTTPException(status_code=400, detail=query_result.get("error"))
+
             sql_query = query_result["sql_query"]
             explanation = query_result["explanation"]
             generation_method = query_result.get("generation_method", "fallback")
@@ -247,6 +252,8 @@ async def query_database(
 
             return QueryResponse(**response_data)
 
+        except HTTPException:
+            raise
         except Exception as e:
             # Save failed query to history
             logger.error(f"ERROR in query endpoint: {str(e)}")

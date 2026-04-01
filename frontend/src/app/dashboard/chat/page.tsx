@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ChatPage from "@/modules/dashboard/ChatPage";
 import { useApi } from "@/hooks/use-api";
 import type { DatabaseResponse } from "@/types/api";
 
 export default function MainChatPage() {
+  const searchParams = useSearchParams();
+  const dbParam = searchParams.get("db");
+  const preselectedId = dbParam ? Number(dbParam) : undefined;
+
   const [databases, setDatabases] = useState<DatabaseResponse[]>([]);
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
@@ -37,5 +42,5 @@ export default function MainChatPage() {
     );
   }
 
-  return <ChatPage databases={databases} error={error} />;
+  return <ChatPage databases={databases} error={error} preselectedDatabaseId={preselectedId} />;
 }

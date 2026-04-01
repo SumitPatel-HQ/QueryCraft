@@ -8,16 +8,12 @@ import {
   Database, 
   HelpCircle, 
   Settings,
-  Plus,
-  Bookmark,
-  Search
+  Bookmark
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  { to: "/dashboard/search", label: "Search", icon: Search },
   { to: "/dashboard/bookmarks", label: "Bookmarks", icon: Bookmark },
   { to: "/dashboard/databases", label: "Databases", icon: Database },
   { to: "/dashboard/samples", label: "Sample Questions", icon: HelpCircle },
@@ -53,12 +49,6 @@ export default function Sidebar({ onChatClick }: SidebarProps) {
             <LogoIcon />
           </div>
           <div className="font-semibold text-[15px] text-[#f0f0f0] tracking-tight">QueryCraft</div>
-        </div>
-
-        <div>
-          <div className="inline-flex items-center justify-center rounded-full border border-[rgba(255,255,255,0.12)] px-2 py-0.5 text-[#888888] font-mono text-[11px] leading-tight select-none">
-            Demo Mode
-          </div>
         </div>
       </div>
 
@@ -102,17 +92,6 @@ export default function Sidebar({ onChatClick }: SidebarProps) {
             <div className="text-[11px] text-[#666666] leading-tight truncate">Demo Mode</div>
           </div>
         </div>
-        <Button
-          variant="default"
-          className="w-full flex justify-center h-9 font-semibold"
-          onClick={() => {
-            router.push("/dashboard/chat");
-            if (onChatClick) onChatClick();
-          }}
-        >
-          <Plus size={16} />
-          New Query
-        </Button>
       </div>
     </aside>
   );

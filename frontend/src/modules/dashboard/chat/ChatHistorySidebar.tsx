@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, PanelLeftClose, PlusSquare, Search, Trash2 } from "lucide-react";
@@ -24,22 +24,36 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
   const [results, setResults] = useState<Array<{ message_id: number; session_id: number; session_title: string; snippet: string }>>([]);
   const [loading, setLoading] = useState(true);
 
+  const reloadSessions = useCallback(async () => {
+    try {
+      const data = await listSessions();
+      setSessions(data);
+    } finally {
+      setLoading(false);
+    }
+  }, [listSessions]);
+
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       setLoading(authLoading);
       return;
     }
 
-    async function loadSessions() {
-      try {
-        const data = await listSessions();
-        setSessions(data);
-      } finally {
-        setLoading(false);
-      }
+    void reloadSessions();
+  }, [reloadSessions, authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      return;
     }
-    loadSessions();
-  }, [listSessions, authLoading, isAuthenticated]);
+
+    const handler = () => {
+      void reloadSessions();
+    };
+
+    window.addEventListener("chat-sessions-updated", handler);
+    return () => window.removeEventListener("chat-sessions-updated", handler);
+  }, [reloadSessions, authLoading, isAuthenticated]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
