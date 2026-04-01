@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ui } from "@clerk/ui";
 import { Toaster } from "@/components/ui/sonner";
 import { RouteSyncer } from "@/components/route-syncer";
+import { AuthProvider } from "@/components/providers/auth-provider";
 import "./globals.css";
 
 const geist = Geist({
@@ -30,16 +29,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider ui={ui}>
-      <html lang="en" className="dark">
-        <body
-          className={`${geist.variable} ${geistMono.variable} antialiased font-sans`}
-        >
+    <html lang="en" className="dark">
+      <body
+        className={`${geist.variable} ${geistMono.variable} antialiased font-sans`}
+      >
+        <AuthProvider>
           {children}
           <RouteSyncer />
           <Toaster />
-        </body>
-      </html>
-    </ClerkProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

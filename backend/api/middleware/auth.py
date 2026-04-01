@@ -1,11 +1,11 @@
-"""Clerk JWT authentication middleware"""
+"""Firebase JWT authentication middleware"""
 
 import logging
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
-from jwt import PyJWKClient
+import firebase_admin
+from firebase_admin import credentials, auth
 
 from api.config.settings import settings
 
@@ -14,49 +14,60 @@ logger = logging.getLogger(__name__)
 # HTTP Bearer token scheme (optional)
 bearer_scheme = HTTPBearer(auto_error=False)
 
+# Initialize Firebase Admin SDK
+_firebase_initialized = False
 
-def verify_clerk_token(token: str) -> dict:
+
+def initialize_firebase():
+    """Initialize Firebase Admin SDK with service account credentials."""
+    global _firebase_initialized
+    if not _firebase_initialized:
+        try:
+            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+            firebase_admin.initialize_app(cred)
+            _firebase_initialized = True
+            logger.info("Firebase Admin SDK initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
+            raise
+
+
+# Initialize on module load
+try:
+    if settings.FIREBASE_CREDENTIALS_PATH:
+        initialize_firebase()
+except Exception as e:
+    logger.warning(f"Firebase initialization skipped: {str(e)}")
+
+
+def verify_firebase_token(token: str) -> dict:
     """
-    Verify Clerk JWT token using JWKS endpoint.
+    Verify Firebase ID token using Firebase Admin SDK.
 
     Args:
-        token: JWT token string
+        token: Firebase ID token string
 
     Returns:
-        Decoded token payload containing user_id (sub), email, etc.
+        Decoded token payload containing uid, email, etc.
 
     Raises:
         HTTPException: If token is invalid or expired
     """
     try:
-        # Initialize JWKS client with Clerk's public keys
-        jwks_client = PyJWKClient(settings.CLERK_JWKS_URL)
+        # Verify the ID token with small clock skew tolerance.
+        # This avoids intermittent "Token used too early" errors when
+        # local machine time and Firebase time differ by a few seconds.
+        decoded_token = auth.verify_id_token(token, clock_skew_seconds=10)
 
-        # Get the signing key from the token header
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        # Return the decoded token with uid
+        return decoded_token
 
-        # Decode and verify the token
-        payload = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            issuer=settings.CLERK_ISSUER,
-            options={
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_iat": True,
-                "verify_iss": True,
-            },
-        )
-
-        return payload
-
-    except jwt.ExpiredSignatureError:
+    except auth.ExpiredIdTokenError:
         logger.warning("Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
         )
-    except jwt.InvalidTokenError as e:
+    except auth.InvalidIdTokenError as e:
         logger.warning(f"Invalid token: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,11 +90,11 @@ async def get_current_user(
     Usage:
         @router.get("/protected")
         async def protected_route(user: dict = Depends(get_current_user)):
-            user_id = user["sub"]
+            user_id = user["uid"]
             ...
 
     Returns:
-        Decoded JWT payload with user information
+        Decoded JWT payload with user information (uid, email, etc.)
     """
     if not credentials:
         raise HTTPException(
@@ -91,8 +102,8 @@ async def get_current_user(
             detail="Missing authentication token",
         )
 
-    payload = verify_clerk_token(credentials.credentials)
-    logger.info(f"Authenticated user: {payload.get('sub')}")
+    payload = verify_firebase_token(credentials.credentials)
+    logger.info(f"Authenticated user: {payload.get('uid')}")
     return payload
 
 
@@ -107,7 +118,7 @@ async def get_optional_user(
         @router.get("/public-or-private")
         async def flexible_route(user: Optional[dict] = Depends(get_optional_user)):
             if user:
-                user_id = user["sub"]
+                user_id = user["uid"]
                 # Return personalized data
             else:
                 # Return public data
@@ -119,8 +130,8 @@ async def get_optional_user(
         return None
 
     try:
-        payload = verify_clerk_token(credentials.credentials)
-        logger.info(f"Optional auth - authenticated user: {payload.get('sub')}")
+        payload = verify_firebase_token(credentials.credentials)
+        logger.info(f"Optional auth - authenticated user: {payload.get('uid')}")
         return payload
     except HTTPException:
         # Token invalid - return None instead of raising error

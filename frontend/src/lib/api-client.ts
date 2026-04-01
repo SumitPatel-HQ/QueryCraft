@@ -1,7 +1,7 @@
 /**
  * Client-Side API Client
  * For use in Client Components (with "use client" directive)
- * Uses fetch with browser runtime and Clerk's useAuth hook
+ * Uses fetch with browser runtime and Firebase auth tokens
  */
 
 import type {
@@ -25,6 +25,10 @@ async function clientFetch<T>(
   token: string | null,
   options?: RequestInit
 ): Promise<T> {
+  if (!token) {
+    throw new Error("Missing authentication token");
+  }
+
   const headers: Record<string, string> = {};
 
   if (options?.headers) {
@@ -79,6 +83,10 @@ export async function uploadDatabase(
   description: string | undefined,
   token: string | null
 ): Promise<DatabaseUploadResponse> {
+  if (!token) {
+    throw new Error("Missing authentication token");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("display_name", displayName);

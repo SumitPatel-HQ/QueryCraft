@@ -8,7 +8,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import type { DatabaseResponse } from "@/types/api";
+import type { DatabaseResponse, DatabaseUploadResponse } from "@/types/api";
+import { useState } from "react";
+import DatabaseUploadModal from "@/components/database/DatabaseUploadModal";
 
 interface DashboardHomeProps {
   databases: DatabaseResponse[];
@@ -17,9 +19,17 @@ interface DashboardHomeProps {
 
 export default function DashboardHome({ databases, error }: DashboardHomeProps) {
   const router = useRouter();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+
   const databaseCount = databases.length;
   const totalTables = databases.reduce((sum, db) => sum + db.table_count, 0);
   const totalRows = databases.reduce((sum, db) => sum + db.row_count, 0);
+
+  const handleUploadSuccess = (data: DatabaseUploadResponse) => {
+    void data.database_id;
+    // Refresh the page to show the new database
+    router.refresh();
+  };
 
   const quickActions = [
     {
@@ -38,7 +48,7 @@ export default function DashboardHome({ databases, error }: DashboardHomeProps) 
       title: "Upload Data",
       desc: "Add CSVs or raw files",
       icon: Upload,
-      action: () => router.push("/dashboard/databases"),
+      action: () => setUploadModalOpen(true),
     },
   ];
 
@@ -132,7 +142,7 @@ export default function DashboardHome({ databases, error }: DashboardHomeProps) 
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[14px] font-semibold text-[#f0f0f0]">Connected Databases</h2>
-          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/databases")}>+ Add Database</Button>
+          <Button variant="ghost" size="sm" onClick={() => setUploadModalOpen(true)}>+ Add Database</Button>
         </div>
         
         <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
@@ -161,6 +171,12 @@ export default function DashboardHome({ databases, error }: DashboardHomeProps) 
           ))}
         </div>
       </section>
+
+      <DatabaseUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
     </div>
   );
 }

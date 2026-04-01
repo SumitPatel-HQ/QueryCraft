@@ -7,7 +7,7 @@ import { AuroraTextEffect } from "@/components/lightswind/aurora-text-effect";
 import { AnimatedScrollButton } from "@/components/ui/animated-scroll-button";
 import ShinyText from "@/components/ui/ShinyText";
 import { useRouter } from "next/navigation";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeroSectionProps {
   onCTAClick?: () => void;
@@ -20,6 +20,7 @@ export function HeroSection({
   isLoading,
 }: HeroSectionProps) {
   const router = useRouter();
+  const { signInWithGoogle } = useAuth();
 
   return (
     <section
@@ -75,26 +76,23 @@ export function HeroSection({
                     Go to Dashboard
                   </Button>
                 ) : (
-                  <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                  <>
                     <Button
                       size="lg"
+                      onClick={signInWithGoogle}
                       className="text-sm sm:text-md h-11 sm:h-12 px-8 sm:px-10 font-bold bg-zinc-900/80 text-white hover:bg-zinc-800/90 transition-all duration-300 hover:scale-[1.05] active:scale-95 rounded-xl backdrop-blur-sm border border-white/5"
                     >
                       Try Demo
                     </Button>
-                  </SignInButton>
-                )}
-
-                {!isAuthenticated && (
-                  <SignUpButton mode="modal">
                     <Button
                       size="lg"
                       variant="outline"
+                      onClick={signInWithGoogle}
                       className="hidden md:block text-sm sm:text-md h-11 sm:h-12 px-5 sm:px-6 font-semibold backdrop-blur-xs bg-black/10 hover:bg-black/30 rounded-xl w-full sm:w-auto"
                     >
                       <ShinyText text="Sign Up Free" speed={2} intensity="low" />
                     </Button>
-                  </SignUpButton>
+                  </>
                 )}
               </>
             )}

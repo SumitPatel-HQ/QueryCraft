@@ -1,13 +1,13 @@
 /**
  * useApi Hook
  * Convenient React hook wrapping client-side API calls
- * Automatically includes Clerk auth token
+ * Automatically includes Firebase auth token
  */
 
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
-import { useCallback } from "react";
+import { useAuthContext } from "@/components/providers/auth-provider";
+import { useCallback, useMemo } from "react";
 import * as apiClient from "@/lib/api-client";
 import type {
   DatabaseResponse,
@@ -21,17 +21,31 @@ import type {
 } from "@/types/api";
 
 export function useApi() {
-  const { getToken } = useAuth();
+  const { getToken, loading, user } = useAuthContext();
 
   // Helper to get token for each request
   const getAuthToken = useCallback(async () => {
+    if (loading) {
+      throw new Error("Authentication is still loading");
+    }
+
+    if (!user) {
+      throw new Error("Missing authentication token");
+    }
+
     try {
-      return await getToken();
+      const token = await getToken(true);
+
+      if (!token) {
+        throw new Error("Invalid authentication token");
+      }
+
+      return token;
     } catch (error) {
       console.warn("Failed to get auth token:", error);
-      return null;
+      throw error;
     }
-  }, [getToken]);
+  }, [getToken, loading, user]);
 
   // ============================================================================
   // Database Operations
@@ -112,7 +126,7 @@ export function useApi() {
     return apiClient.clearCache(token);
   }, [getAuthToken]);
 
-  return {
+  return useMemo(() => ({
     // Database operations
     getDatabases,
     getDatabase,
@@ -125,5 +139,15 @@ export function useApi() {
     // Cache operations
     getCacheStats,
     clearCache,
-  };
+  }), [
+    getDatabases,
+    getDatabase,
+    uploadDatabase,
+    deleteDatabase,
+    getDatabaseSchema,
+    getDatabaseTables,
+    queryDatabase,
+    getCacheStats,
+    clearCache,
+  ]);
 }
