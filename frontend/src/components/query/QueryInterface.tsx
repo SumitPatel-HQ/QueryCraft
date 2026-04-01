@@ -144,6 +144,16 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           </div>
         </div>
       )}
+      
+      {!selectedDatabaseId && availableDatabases.length === 0 && (
+        <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[20px] py-20 flex flex-col items-center justify-center text-center px-4">
+          <DatabaseIcon size={32} className="text-[#444444] mb-4" />
+          <h3 className="text-[16px] font-semibold text-[#f0f0f0] mb-2">No database connected</h3>
+          <p className="text-[14px] text-[#888888] max-w-[36ch] mx-auto mb-6">
+            Upload a database to start Querying
+          </p>
+        </div>
+      )}
 
       <div className="flex-1" />
 
@@ -192,7 +202,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
                     void handleQuery();
                   }
                 }}
-                placeholder="Ask a question about your data..."
+                placeholder={selectedDatabaseId ? "Ask a question about your data..." : "Please upload or select a database..."}
                 disabled={loading || !selectedDatabaseId}
                 rows={1}
                 onInput={(e) => {

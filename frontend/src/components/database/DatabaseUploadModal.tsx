@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { X, Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApi } from "@/hooks/use-api";
 import type { DatabaseUploadResponse } from "@/types/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DatabaseUploadModalProps {
   isOpen: boolean;
@@ -23,8 +29,6 @@ export default function DatabaseUploadModal({
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -85,21 +89,13 @@ export default function DatabaseUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-[12px] w-full max-w-[500px] p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[18px] font-semibold text-[#f0f0f0]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-[12px] w-full max-w-[500px] p-6 text-[#f0f0f0] sm:rounded-[12px]">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-[18px] font-semibold text-[#f0f0f0]">
             Upload Database
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={uploading}
-            className="text-[#888888] hover:text-[#f0f0f0] transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* File Input */}
@@ -193,7 +189,7 @@ export default function DatabaseUploadModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,6 @@
 """Query processing API endpoints"""
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional
 import time
 import logging
 import hashlib
@@ -9,10 +8,10 @@ from datetime import datetime, UTC
 
 from api.schemas import QueryRequest, QueryResponse
 from database.models import Database as DatabaseModel, QueryHistory
-from database.session import get_db
+from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services import determine_query_complexity, generate_query_explanation
-from api.middleware.auth import get_optional_user
+from api.middleware.auth import get_current_user
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,18 +33,22 @@ except ImportError:
 async def query_database(
     database_id: int,
     request: QueryRequest,
-    user: Optional[dict] = Depends(get_optional_user),
+    user: dict = Depends(get_current_user),
 ):
     """Query a specific database with natural language"""
-    if user:
-        logger.info(
-            f"User {user.get('sub')} querying database {database_id}: {request.question[:50]}"
-        )
+    user_id = user.get("uid")
+    logger.info(
+        f"User {user_id} querying database {database_id}: {request.question[:50]}"
+    )
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         # Get database
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -231,6 +234,7 @@ async def query_database(
             # Save to query history
             history = QueryHistory(
                 database_id=database_id,
+                user_id=user_id,
                 question=request.question,
                 sql_query=sql_query,
                 execution_time_ms=execution_time_ms,
@@ -252,6 +256,7 @@ async def query_database(
 
             history = QueryHistory(
                 database_id=database_id,
+                user_id=user_id,
                 question=request.question,
                 sql_query="",
                 success=False,
@@ -286,10 +291,9 @@ async def process_query(request: QueryRequest):
 
 
 @router.get("/cache/stats")
-async def get_cache_stats(user: Optional[dict] = Depends(get_optional_user)):
+async def get_cache_stats(user: dict = Depends(get_current_user)):
     """Get query cache statistics"""
-    if user:
-        logger.info(f"User {user.get('sub')} fetching cache stats")
+    logger.info(f"User {user.get('uid')} fetching cache stats")
 
     if not CACHE_ENABLED:
         return {"error": "Cache not enabled"}
@@ -304,10 +308,9 @@ async def get_cache_stats(user: Optional[dict] = Depends(get_optional_user)):
 
 
 @router.post("/cache/clear")
-async def clear_cache(user: Optional[dict] = Depends(get_optional_user)):
+async def clear_cache(user: dict = Depends(get_current_user)):
     """Clear all cached queries"""
-    if user:
-        logger.info(f"User {user.get('sub')} clearing query cache")
+    logger.info(f"User {user.get('uid')} clearing query cache")
 
     if not CACHE_ENABLED:
         return {"error": "Cache not enabled"}
@@ -318,20 +321,22 @@ async def clear_cache(user: Optional[dict] = Depends(get_optional_user)):
 
 @router.get("/databases/{database_id}/tables")
 async def get_database_tables_info(
-    database_id: int, user: Optional[dict] = Depends(get_optional_user)
+    database_id: int, user: dict = Depends(get_current_user)
 ):
     """
     Get detailed table information for a specific database
     Useful for debugging schema issues
     """
-    if user:
-        logger.info(
-            f"User {user.get('sub')} fetching table info for database {database_id}"
-        )
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching table info for database {database_id}")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")

@@ -1,20 +1,43 @@
-import { getDatabase } from "@/lib/api";
+"use client";
 
-export default async function SettingsPage({
-  params,
-}: {
-  params: Promise<{ dbId: string }>;
-}) {
-  const { dbId } = await params;
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
+import type { DatabaseResponse } from "@/types/api";
+
+export default function SettingsPage() {
+  const params = useParams();
+  const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
 
-  let database;
-  let error;
+  const [database, setDatabase] = useState<DatabaseResponse | null>(null);
+  const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+  const api = useApi();
 
-  try {
-    database = await getDatabase(id);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to load database settings";
+
+  useEffect(() => {
+    async function fetchDatabase() {
+      try {
+        const data = await api.getDatabase(id);
+        setDatabase(data);
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : "Failed to load database settings";
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDatabase();
+  }, [id, api]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-white">Loading settings...</div>
+      </div>
+    );
   }
 
   if (error || !database) {

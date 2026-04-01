@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDatabase } from "@/lib/api";
+import { useParams } from "next/navigation";
+import { useApi } from "@/hooks/use-api";
 import DetailNav from "./_components/DetailNav";
+import type { DatabaseResponse } from "@/types/api";
 
 const tabs = [
   { to: "overview", label: "Overview" },
@@ -10,26 +15,37 @@ const tabs = [
   { to: "settings", label: "Settings" },
 ];
 
-export default async function DatabaseDetailLayout({
+export default function DatabaseDetailLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ dbId: string }>;
 }) {
-  const { dbId } = await params;
+  const params = useParams();
+  const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
+  
+  const [database, setDatabase] = useState<DatabaseResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const api = useApi();
 
-  let databaseName = `Database ${dbId}`;
-  let status = "Unknown";
 
-  try {
-    const db = await getDatabase(id);
-    databaseName = db.display_name;
-    status = db.is_active ? "Active" : "Inactive";
-  } catch {
-    // Keep fallback label if database lookup fails
-  }
+  useEffect(() => {
+    async function fetchDatabase() {
+      try {
+        const db = await api.getDatabase(id);
+        setDatabase(db);
+      } catch (error) {
+        console.error("Error fetching database:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDatabase();
+  }, [id, api]);
+
+  const databaseName = database?.display_name || `Database ${dbId}`;
+  const status = database ? (database.is_active ? "Active" : "Inactive") : "Unknown";
 
   return (
     <div className="flex min-h-screen">
@@ -38,7 +54,9 @@ export default async function DatabaseDetailLayout({
           <Link href="/dashboard/databases" className="text-sm text-[#888888] hover:text-[#f0f0f0] transition-colors">
             Back to Databases
           </Link>
-          <div className="mt-3 font-semibold text-[#f0f0f0] truncate">{databaseName}</div>
+          <div className="mt-3 font-semibold text-[#f0f0f0] truncate">
+            {loading ? "Loading..." : databaseName}
+          </div>
           <div className="mt-2 inline-block text-xs px-2 py-1 rounded-md bg-[rgba(16,185,129,0.15)] text-[#10B981]">
             {status}
           </div>

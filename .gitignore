@@ -89,3 +89,7 @@ jspm_packages/
 .claude
 
 firebaseconfig.ts
+
+# Firebase service account keys
+backend/privateKey.json
+backend/firebase-service-account.json

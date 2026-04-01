@@ -1,17 +1,17 @@
 """Database management API endpoints"""
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
-from typing import List, Optional
+from typing import List
 from datetime import datetime, UTC
 import os
 import logging
 
-from api.schemas import DatabaseCreate, DatabaseResponse
+from api.schemas import DatabaseResponse
 from database.models import Database as DatabaseModel
-from database.session import get_db
+from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services.upload_handler import DatabaseUploadHandler
-from api.middleware.auth import get_optional_user
+from api.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +19,16 @@ router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
 
 
 @router.get("", response_model=List[DatabaseResponse])
-async def list_databases(user: Optional[dict] = Depends(get_optional_user)):
+async def list_databases(user: dict = Depends(get_current_user)):
     """Get list of all databases"""
-    if user:
-        logger.info(f"User {user.get('sub')} fetching database list")
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching database list")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         databases = (
             db.query(DatabaseModel)
+            .filter(DatabaseModel.user_id == user_id)
             .filter(DatabaseModel.is_active == True)
             .order_by(DatabaseModel.last_accessed.desc())
             .all()
@@ -52,16 +54,18 @@ async def list_databases(user: Optional[dict] = Depends(get_optional_user)):
 
 
 @router.get("/{database_id}", response_model=DatabaseResponse)
-async def get_database(
-    database_id: int, user: Optional[dict] = Depends(get_optional_user)
-):
+async def get_database(database_id: int, user: dict = Depends(get_current_user)):
     """Get specific database details"""
-    if user:
-        logger.info(f"User {user.get('sub')} fetching database {database_id}")
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching database {database_id}")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -91,11 +95,11 @@ async def upload_database(
     file: UploadFile = File(...),
     display_name: str = Form(...),
     description: str = Form(None),
-    user: Optional[dict] = Depends(get_optional_user),
+    user: dict = Depends(get_current_user),
 ):
     """Upload a new database"""
-    if user:
-        logger.info(f"User {user.get('sub')} uploading database: {display_name}")
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} uploading database: {display_name}")
 
     temp_file_path = None
     try:
@@ -181,6 +185,7 @@ async def upload_database(
 
         # Save to PostgreSQL
         with get_db() as db:
+            set_current_user_context(db, user_id)
             new_db = DatabaseModel(
                 name=db_name,
                 display_name=display_name,
@@ -191,6 +196,7 @@ async def upload_database(
                 table_count=stats["table_count"],
                 row_count=stats["row_count"],
                 size_mb=stats["size_mb"],
+                user_id=user_id,
             )
             db.add(new_db)
             db.commit()
@@ -222,16 +228,18 @@ async def upload_database(
 
 
 @router.delete("/{database_id}")
-async def delete_database(
-    database_id: int, user: Optional[dict] = Depends(get_optional_user)
-):
+async def delete_database(database_id: int, user: dict = Depends(get_current_user)):
     """Delete a database"""
-    if user:
-        logger.info(f"User {user.get('sub')} deleting database {database_id}")
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} deleting database {database_id}")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -248,18 +256,18 @@ async def delete_database(
 
 
 @router.get("/{database_id}/schema")
-async def get_database_schema(
-    database_id: int, user: Optional[dict] = Depends(get_optional_user)
-):
+async def get_database_schema(database_id: int, user: dict = Depends(get_current_user)):
     """Get schema for specific database"""
-    if user:
-        logger.info(
-            f"User {user.get('sub')} fetching schema for database {database_id}"
-        )
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching schema for database {database_id}")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -291,18 +299,18 @@ async def get_database_schema(
 
 
 @router.get("/{database_id}/tables")
-async def get_database_tables(
-    database_id: int, user: Optional[dict] = Depends(get_optional_user)
-):
+async def get_database_tables(database_id: int, user: dict = Depends(get_current_user)):
     """Get list of tables in a specific database (for debugging)"""
-    if user:
-        logger.info(
-            f"User {user.get('sub')} fetching tables for database {database_id}"
-        )
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching tables for database {database_id}")
 
     with get_db() as db:
+        set_current_user_context(db, user_id)
         database = (
-            db.query(DatabaseModel).filter(DatabaseModel.id == database_id).first()
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
         )
         if not database:
             raise HTTPException(status_code=404, detail="Database not found")
