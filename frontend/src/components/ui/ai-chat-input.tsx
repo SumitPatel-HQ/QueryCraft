@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -20,6 +20,13 @@ export default function AiChatInput({
   isLoading?: boolean
 }) {
   const [input, setInput] = useState("")
+  const [isDraggingFile, setIsDraggingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleFile = (file?: File) => {
+    if (!file || !onUploadFile) return
+    onUploadFile(file)
+  }
 
   const handleSubmit = () => {
     if (!input.trim()) return
@@ -34,29 +41,55 @@ export default function AiChatInput({
     }
   }
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingFile(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingFile(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDraggingFile(false)
+
+    handleFile(e.dataTransfer.files?.[0])
+  }
+
   return (
     <div className="w-full max-w-2xl px-4">
       <div className={cn(
         "relative flex items-center gap-2 p-1.5 rounded-[28px] bg-[#222222] border border-white/5 shadow-2xl",
-        "transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10"
-      )}>
+        "transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10",
+        isDraggingFile && "border-white/40 ring-1 ring-white/20"
+      )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* File Upload */}
         <Button
           variant="ghost"
           size="icon"
           className="h-9 w-9 text-white/50 hover:text-white rounded-full transition-colors"
-          onClick={() => document.getElementById("file-input")?.click()}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Paperclip className="h-5 w-5" />
         </Button>
         <input
-          id="file-input"
+          ref={fileInputRef}
           type="file"
           className="hidden"
           onChange={(e) => {
-            if (e.target.files?.[0] && onUploadFile) {
-              onUploadFile(e.target.files[0])
-            }
+            handleFile(e.target.files?.[0])
+
+            // Allow selecting the same file repeatedly.
+            e.currentTarget.value = ""
           }}
         />
 

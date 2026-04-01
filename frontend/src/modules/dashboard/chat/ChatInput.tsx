@@ -8,11 +8,17 @@ export default function ChatInput() {
     // TODO: Connect to backend NL-to-SQL processing
   };
 
+  const handleUpload = (file: File) => {
+    console.log("Uploading file:", file.name);
+    // TODO: Connect to backend upload flow
+  };
+
   return (
-    <div className="sticky fixed bottom-0 left-0 right-0 w-full py-4 z-10 flex justify-center">
-      <div className="max-w-3xl px-6">
+    <div className="sticky bottom-0 w-full pb-4 pt-2 z-20 flex justify-center bg-linear-to-t from-[#070707] via-[#070707]/95 to-transparent">
+      <div className="w-full max-w-3xl px-6">
         <AiChatInput
           onSendMessage={handleSend}
+          onUploadFile={handleUpload}
         />
         <div className="text-[11px] text-[#444444] text-center mt-3">
           QueryCraft uses AI and may produce inaccurate SQL. Always verify before executing destructive operations.

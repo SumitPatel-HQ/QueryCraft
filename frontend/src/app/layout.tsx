@@ -8,14 +8,12 @@ import "./globals.css";
 
 const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-inter", /* Keep variable name for CSS consistency or rename --font-geist */
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-geist",
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono", /* Keep variable name for CSS consistency or rename */
-  weight: ["400", "500", "600"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
