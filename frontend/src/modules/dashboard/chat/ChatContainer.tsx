@@ -2,8 +2,6 @@
 
 import { MessageSquare, Trash2 } from "lucide-react";
 import ChatInput from "./ChatInput";
-import AIResponse from "./AIResponse";
-import UserMessage from "./UserMessage";
 import SampleQuestions from "./SampleQuestions";
 import { Button } from "@/components/ui/button";
 

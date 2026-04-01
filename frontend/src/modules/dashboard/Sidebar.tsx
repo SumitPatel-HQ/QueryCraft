@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { 
   Home, 
   MessageSquare, 
@@ -36,7 +36,6 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onChatClick }: SidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
 
   return (

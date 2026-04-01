@@ -15,6 +15,7 @@ import type {
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
+  ERDResponse,
 } from "@/types/api";
 
 /**
@@ -155,6 +156,16 @@ export async function getDatabaseHistory(
 ): Promise<DatabaseHistoryResponse> {
   return clientFetch<DatabaseHistoryResponse>(
     `/api/v1/databases/${databaseId}/history`,
+    token
+  );
+}
+
+export async function getDatabaseERD(
+  databaseId: number,
+  token: string | null
+): Promise<ERDResponse> {
+  return clientFetch<ERDResponse>(
+    `/api/v1/databases/${databaseId}/erd`,
     token
   );
 }

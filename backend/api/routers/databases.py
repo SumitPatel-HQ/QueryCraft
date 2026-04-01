@@ -298,6 +298,69 @@ async def get_database_schema(database_id: int, user: dict = Depends(get_current
         return {"schema": schema_data, "source": "fresh"}
 
 
+@router.get("/{database_id}/erd")
+async def get_database_erd(database_id: int, user: dict = Depends(get_current_user)):
+    """Get ERD (Entity Relationship Diagram) for specific database as Mermaid syntax"""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching ERD for database {database_id}")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
+        )
+        if not database:
+            raise HTTPException(status_code=404, detail="Database not found")
+
+        # Validate file exists for SQLite
+        if database.db_type == "sqlite" and database.file_path:
+            import os
+
+            if not os.path.exists(database.file_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Database file not found at: {database.file_path}",
+                )
+
+        # Get schema data
+        schema_data = database.schema_data or DatabaseConnectionManager.get_schema(
+            database.db_type, database.file_path or database.connection_string
+        )
+
+        # Convert to tables format for ERD service
+        tables = []
+        for table_name, columns in schema_data.items():
+            table_info = {
+                "name": table_name,
+                "columns": [
+                    {
+                        "name": col.get("name", ""),
+                        "type": col.get("type", "TEXT"),
+                        "key": "PK" if col.get("primary_key") else ("FK" if col.get("foreign_key") else ""),
+                    }
+                    for col in columns
+                ],
+            }
+            tables.append(table_info)
+
+        # Infer relationships
+        from api.services import infer_relationships
+        relationships = infer_relationships(schema_data)
+
+        # Generate Mermaid ERD
+        from api.services import generate_mermaid_erd
+        mermaid_erd = generate_mermaid_erd(tables, relationships)
+
+        return {
+            "mermaid": mermaid_erd,
+            "tables": tables,
+            "relationships": relationships,
+        }
+
+
 @router.get("/{database_id}/tables")
 async def get_database_tables(database_id: int, user: dict = Depends(get_current_user)):
     """Get list of tables in a specific database (for debugging)"""

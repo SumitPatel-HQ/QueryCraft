@@ -101,18 +101,23 @@ class NLToSQLProcessor:
 
             # Check if LLM generation was successful
             if result.get("sql_query") and not result.get("error"):
+                sql_query = SQLUtils.quote_table_identifiers(
+                    result["sql_query"], self.table_names
+                )
+                tables_used = SQLUtils.extract_tables_from_sql(sql_query)
+
                 logger.info(
                     f"✅ LLM generation successful. Confidence: {result['confidence_score']:.2f}"
                 )
 
                 return {
-                    "sql_query": result["sql_query"],
+                    "sql_query": sql_query,
                     "explanation": result["explanation"],
                     "generation_method": "llm",
                     "confidence": int(
                         result["confidence_score"] * 100
                     ),  # Convert to 0-100
-                    "tables_used": result["tables_used"],
+                    "tables_used": tables_used,
                     "tokens_used": result.get("tokens_used", 0),
                 }
             else:
@@ -141,7 +146,8 @@ class NLToSQLProcessor:
         result = self.pattern_matcher.generate_query(question, question_lower)
 
         # Add metadata
-        sql = result["sql_query"]
+        sql = SQLUtils.quote_table_identifiers(result["sql_query"], self.table_names)
+        result["sql_query"] = sql
         result["generation_method"] = "fallback"
         result["confidence"] = SQLUtils.calculate_pattern_confidence(question_lower)
         result["tables_used"] = SQLUtils.extract_tables_from_sql(sql)

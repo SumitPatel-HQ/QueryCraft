@@ -116,14 +116,27 @@ class SQLValidator:
             tables = []
 
             # Regex to find table names after FROM and JOIN keywords
-            from_pattern = r"from\s+(\w+)"
-            join_pattern = r"join\s+(\w+)"
+            identifier_pattern = r'(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)'
+            from_pattern = rf"from\s+({identifier_pattern})"
+            join_pattern = rf"join\s+({identifier_pattern})"
 
             from_matches = re.findall(from_pattern, sql_lower)
             join_matches = re.findall(join_pattern, sql_lower)
 
             tables.extend(from_matches)
             tables.extend(join_matches)
+
+            def _strip_quotes(identifier: str) -> str:
+                ident = identifier.strip()
+                if (
+                    (ident.startswith('"') and ident.endswith('"'))
+                    or (ident.startswith("`") and ident.endswith("`"))
+                    or (ident.startswith("[") and ident.endswith("]"))
+                ):
+                    return ident[1:-1]
+                return ident
+
+            tables = [_strip_quotes(t) for t in tables]
 
             # Remove duplicates and return
             return list(set(tables))

@@ -6,8 +6,8 @@
 
 "use client";
 
+import { useCallback, useMemo, useRef } from "react";
 import { useAuthContext } from "@/components/providers/auth-provider";
-import { useCallback, useMemo } from "react";
 import * as apiClient from "@/lib/api-client";
 import type {
   DatabaseResponse,
@@ -19,18 +19,27 @@ import type {
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
+  ERDResponse,
 } from "@/types/api";
 
 export function useApi() {
   const { getToken, loading, user } = useAuthContext();
+  // Use refs to avoid stale closure issues in async functions
+  const loadingRef = useRef(loading);
+  const userRef = useRef(user);
+
+  // Keep refs updated with latest values
+  loadingRef.current = loading;
+  userRef.current = user;
 
   // Helper to get token for each request
   const getAuthToken = useCallback(async () => {
-    if (loading) {
+    // Read current values from refs to avoid stale closure
+    if (loadingRef.current) {
       throw new Error("Authentication is still loading");
     }
 
-    if (!user) {
+    if (!userRef.current) {
       throw new Error("Missing authentication token");
     }
 
@@ -46,7 +55,7 @@ export function useApi() {
       console.warn("Failed to get auth token:", error);
       throw error;
     }
-  }, [getToken, loading, user]);
+  }, [getToken]);
 
   // ============================================================================
   // Database Operations
@@ -109,6 +118,14 @@ export function useApi() {
     [getAuthToken]
   );
 
+  const getDatabaseERD = useCallback(
+    async (databaseId: number): Promise<ERDResponse> => {
+      const token = await getAuthToken();
+      return apiClient.getDatabaseERD(databaseId, token);
+    },
+    [getAuthToken]
+  );
+
   // ============================================================================
   // Query Operations
   // ============================================================================
@@ -146,7 +163,7 @@ export function useApi() {
     getDatabaseHistory,
     // Query operations
     queryDatabase,
-    // Cache operations
+    getDatabaseERD,
     getCacheStats,
     clearCache,
   }), [
@@ -158,6 +175,7 @@ export function useApi() {
     getDatabaseTables,
     getDatabaseHistory,
     queryDatabase,
+    getDatabaseERD,
     getCacheStats,
     clearCache,
   ]);

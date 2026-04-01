@@ -132,6 +132,34 @@ export interface CacheClearResponse {
 }
 
 // ============================================================================
+// ERD Types
+// ============================================================================
+
+export interface ERDColumn {
+  name: string;
+  type: string;
+  key: string;
+}
+
+export interface ERDTable {
+  name: string;
+  columns: ERDColumn[];
+}
+
+export interface ERDRelationship {
+  from: string;
+  to: string;
+  type: string;
+  via: string;
+}
+
+export interface ERDResponse {
+  mermaid: string;
+  tables: ERDTable[];
+  relationships: ERDRelationship[];
+}
+
+// ============================================================================
 // Error Response Type
 // ============================================================================
 

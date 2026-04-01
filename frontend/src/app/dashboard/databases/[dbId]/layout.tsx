@@ -45,7 +45,6 @@ export default function DatabaseDetailLayout({
   }, [id, api]);
 
   const databaseName = database?.display_name || `Database ${dbId}`;
-  const status = database ? (database.is_active ? "Active" : "Inactive") : "Unknown";
 
   return (
     <div className="flex min-h-screen">

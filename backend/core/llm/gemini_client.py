@@ -30,7 +30,7 @@ class GeminiClient:
         self.client = genai.Client(api_key=LLMConfig.get_api_key("gemini"))
 
         # Set model and timeout
-        self.model_name = LLMConfig.get_model_name(model_name)
+        self.model_name = LLMConfig.get_model_name("gemini", model_name)
         self.timeout = LLMConfig.get_timeout(timeout)
 
         logger.info(f"Initialized Gemini client with model: {self.model_name}")

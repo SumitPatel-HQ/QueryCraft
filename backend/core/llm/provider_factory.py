@@ -2,7 +2,6 @@ import logging
 from typing import Callable, Dict, Optional
 
 from .config import LLMConfig
-from .gemini_client import GeminiClient
 from .provider_base import LLMProvider
 
 logger = logging.getLogger(__name__)
@@ -10,6 +9,25 @@ logger = logging.getLogger(__name__)
 
 ProviderFactory = Callable[..., LLMProvider]
 PROVIDER_REGISTRY: Dict[str, Dict[str, Optional[str] | ProviderFactory]] = {}
+
+
+def _gemini_factory(**kwargs) -> LLMProvider:
+    # Lazy import so missing optional SDKs don't break other providers.
+    from .gemini_client import GeminiClient
+
+    return GeminiClient(**kwargs)
+
+
+def _openrouter_factory(**kwargs) -> LLMProvider:
+    from .openrouter_client import OpenRouterClient
+
+    return OpenRouterClient(**kwargs)
+
+
+def _openai_factory(**kwargs) -> LLMProvider:
+    from .openai_client import OpenAIClient
+
+    return OpenAIClient(**kwargs)
 
 
 def register_provider(
@@ -25,9 +43,15 @@ def register_provider(
 
 def _bootstrap_registry() -> None:
     if "gemini" not in PROVIDER_REGISTRY:
+        register_provider("gemini", _gemini_factory, "GEMINI_API_KEY")
+    if "openrouter" not in PROVIDER_REGISTRY:
         register_provider(
-            "gemini", lambda **kwargs: GeminiClient(**kwargs), "GEMINI_API_KEY"
+            "openrouter",
+            _openrouter_factory,
+            "OPENROUTER_API_KEY",
         )
+    if "openai" not in PROVIDER_REGISTRY:
+        register_provider("openai", _openai_factory, "OPENAI_API_KEY")
 
 
 def _provider_available(provider_name: str, required_api_key: Optional[str]) -> bool:
@@ -77,7 +101,25 @@ def get_llm_provider(
             continue
 
         factory = entry["factory"]
-        provider = factory(model_name=model_name, timeout=timeout)
+        try:
+            provider = factory(model_name=model_name, timeout=timeout)
+        except (ModuleNotFoundError, ImportError) as e:
+            skipped.append(candidate)
+            logger.warning(
+                "Skipping provider '%s' due to missing optional dependency: %s",
+                candidate,
+                e,
+            )
+            continue
+        except Exception as e:
+            skipped.append(candidate)
+            logger.warning(
+                "Skipping provider '%s' due to initialization error: %s",
+                candidate,
+                e,
+                exc_info=True,
+            )
+            continue
         logger.info(
             "Selected LLM provider '%s' (chain=%s)",
             candidate,
