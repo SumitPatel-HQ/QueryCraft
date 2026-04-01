@@ -25,16 +25,30 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+const isConfigValid = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "api key";
+
 // Initialize Firebase (singleton pattern)
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+let app: FirebaseApp | undefined;
+let authInstance: Auth | undefined;
+
+if (isConfigValid) {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApps()[0];
+  }
+  authInstance = getAuth(app);
 } else {
-  app = getApps()[0];
+  // During build / prerendering, we log a warning instead of crashing
+  console.warn(
+    "Firebase: Missing or invalid API key. Auth is disabled. " +
+    "If this is a production build, ensure NEXT_PUBLIC_FIREBASE_API_KEY is set."
+  );
 }
 
 // Initialize Auth
-export const auth: Auth = getAuth(app);
+export const auth = authInstance as Auth; // Keep type for now, but handle undefined in usages
+
 
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
@@ -55,6 +69,9 @@ export const signInWithGoogle = async () => {
 
   activeGoogleSignIn = (async () => {
     try {
+      if (!auth) {
+        throw new Error("Firebase Auth is not correctly configured.");
+      }
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     } catch (error) {
@@ -81,6 +98,10 @@ export const signInWithGoogle = async () => {
  */
 export const signOutUser = async () => {
   try {
+    if (!auth) {
+      console.warn("Sign-out attempted but Firebase Auth is not initialized.");
+      return;
+    }
     await firebaseSignOut(auth);
   } catch (error) {
     console.error("Error signing out:", error);

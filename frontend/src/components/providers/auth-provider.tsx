@@ -26,6 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser((previousUser) => {
@@ -70,6 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getToken = async (forceRefresh = true): Promise<string | null> => {
+    if (!auth) {
+      console.warn("Auth token requested but Firebase Auth is not initialized.");
+      return null;
+    }
     const activeUser = auth.currentUser ?? user;
     if (!activeUser) return null;
 
