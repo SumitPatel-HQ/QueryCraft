@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS databases (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_queried TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    user_id VARCHAR(128)
 );
 
 -- Create sample_questions table (AI-generated questions per database)
@@ -34,11 +35,14 @@ CREATE TABLE IF NOT EXISTS query_history (
     confidence_score INTEGER,
     success BOOLEAN DEFAULT TRUE,
     error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id VARCHAR(128)
 );
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_databases_active ON databases(is_active);
 CREATE INDEX IF NOT EXISTS idx_databases_created ON databases(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_databases_user_id ON databases(user_id);
 CREATE INDEX IF NOT EXISTS idx_query_history_db ON query_history(database_id);
 CREATE INDEX IF NOT EXISTS idx_query_history_created ON query_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id);

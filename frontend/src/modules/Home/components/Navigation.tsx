@@ -1,13 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { DynamicNavigation } from "@/components/lightswind/dynamic-navigation";
 import ShinyText from "@/components/ui/ShinyText";
 import { NAV_LINKS } from "../constants";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useAuthContext } from "@/components/providers/auth-provider";
+import { LogOut, User } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { useLenis } from "@studio-freight/react-lenis";
 
@@ -18,6 +26,7 @@ interface NavigationProps {
 
 export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
   const router = useRouter();
+  const { user, signIn, signOut } = useAuthContext();
   const [activeSection, setActiveSection] = useState<string>("hero");
   const [isVisible, setIsVisible] = useState<boolean>(true);
   const [lastScrollY, setLastScrollY] = useState<number>(0);
@@ -79,6 +88,24 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
     }
   };
 
+  const handleSignIn = async () => {
+    try {
+      await signIn();
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Sign in failed:", error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
+
   return (
     <nav
       className={`sticky top-6 sm:top-8 z-50 transition-transform duration-300 ${
@@ -120,34 +147,54 @@ export function Navigation({ isAuthenticated, isLoading }: NavigationProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             {!isLoading && (
               <>
-                {isAuthenticated ? (
+                {isAuthenticated && user ? (
                   <div className="flex items-center gap-2 bg-[#1A1A1A] rounded-full px-4 py-1.5 border border-white/10 shadow-lg">
-                    <UserButton
-                      showName
-                      appearance={{
-                        elements: {
-                          userButtonOuterIdentifier: {
-                            color: "#ffffff",
-                          },
-                        },
-                      }}
-                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-2 focus:outline-none">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={user.photoURL || undefined}
+                              alt={user.displayName || "User"}
+                            />
+                            <AvatarFallback>
+                              {user.email?.charAt(0).toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-white hidden sm:inline">
+                            {user.displayName || user.email}
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => router.push("/dashboard/settings")}
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleSignOut}>
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Sign out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ) : (
                   <>
-                    <SignUpButton mode="modal">
-                      <Button
-                        variant="ghost"
-                        className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs"
-                      >
-                        Sign up
-                      </Button>
-                    </SignUpButton>
-                    <SignInButton mode="modal">
-                      <Button className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30">
-                        <ShinyText text="Log in" speed={2} intensity="high" />
-                      </Button>
-                    </SignInButton>
+                    <Button
+                      variant="ghost"
+                      onClick={handleSignIn}
+                      className="shadow-md rounded-full font-semibold h-10 sm:h-12 px-3 sm:px-4 text-sm sm:text-base text-white hover:bg-white/30 hover:backdrop-blur-xs"
+                    >
+                      Sign up
+                    </Button>
+                    <Button
+                      onClick={handleSignIn}
+                      className="shadow-md rounded-full backdrop-blur-md bg-white/20 font-semibold h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base hover:bg-white/30"
+                    >
+                      <ShinyText text="Log in" speed={2} intensity="high" />
+                    </Button>
                   </>
                 )}
               </>

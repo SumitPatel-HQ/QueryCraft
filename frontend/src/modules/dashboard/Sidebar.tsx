@@ -8,13 +8,17 @@ import {
   Database, 
   HelpCircle, 
   Settings,
-  Plus
+  Plus,
+  Bookmark,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/dashboard/chat", label: "Chat", icon: MessageSquare },
+  { to: "/dashboard/search", label: "Search", icon: Search },
+  { to: "/dashboard/bookmarks", label: "Bookmarks", icon: Bookmark },
   { to: "/dashboard/databases", label: "Databases", icon: Database },
   { to: "/dashboard/samples", label: "Sample Questions", icon: HelpCircle },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },

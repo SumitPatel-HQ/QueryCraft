@@ -1,17 +1,19 @@
 "use client";
 
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { useAuthContext } from "@/components/providers/auth-provider";
 
-export function useAuthProvider() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const { user } = useUser();
-  const { signOut } = useClerk();
+export function useAuth() {
+  const context = useAuthContext();
 
   return {
-    isLoaded,
-    isLoading: !isLoaded,
-    isAuthenticated: !!isSignedIn,
-    user,
-    signOut: () => signOut({ redirectUrl: "/" }),
+    isLoaded: !context.loading,
+    isLoading: context.loading,
+    isAuthenticated: !!context.user,
+    user: context.user,
+    signOut: context.signOut,
+    signInWithGoogle: context.signInWithGoogle,
   };
 }
+
+// Legacy export for backward compatibility
+export const useAuthProvider = useAuth;
