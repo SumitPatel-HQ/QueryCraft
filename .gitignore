@@ -87,6 +87,7 @@ jspm_packages/
 .agents/
 .doc/
 .claude
+.github/
 .planning/
 
 # Ruff cache
