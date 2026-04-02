@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import ssl as ssl_module
 from types import SimpleNamespace
 from typing import Any
 
@@ -48,9 +47,7 @@ class PostgresExecutorAsync:
             raise ConnectionError("asyncpg is required for PostgreSQL async execution")
 
         self.config = dict(config)
-        ssl_context = None
-        if self.config.get("ssl"):
-            ssl_context = ssl_module.create_default_context()
+        ssl = "require" if self.config.get("ssl") else None
 
         timeout = float(self.config.get("timeout", 30))
 
@@ -63,7 +60,7 @@ class PostgresExecutorAsync:
                 database=self.config.get("db") or self.config.get("database"),
                 min_size=1,
                 max_size=10,
-                ssl=ssl_context,
+                ssl=ssl,
                 timeout=timeout,
                 command_timeout=timeout,
             )
