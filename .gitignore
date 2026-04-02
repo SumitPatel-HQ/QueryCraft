@@ -85,10 +85,10 @@ jspm_packages/
 # Guidelines (internal docs)
 .guidelines/
 .agents/
-.doc/
 .claude
 .github/
 .planning/
+.doc/
 
 # Ruff cache
 .ruff_cache/

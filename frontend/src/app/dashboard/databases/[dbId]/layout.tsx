@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, ChevronLeft } from "lucide-react";
 import DetailNav from "./_components/DetailNav";
 import type { DatabaseResponse } from "@/types/api";
 
@@ -21,12 +21,18 @@ export default function DatabaseDetailLayout({
   children: React.ReactNode;
 }) {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  
   const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
   
   const [database, setDatabase] = useState<DatabaseResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const api = useApi();
+
+  const backLink = from === "mysql" ? "/dashboard/mysql" : "/dashboard/databases";
+  const backText = from === "mysql" ? "Back to My SQL" : "Back to Databases";
 
 
   useEffect(() => {
@@ -50,10 +56,14 @@ export default function DatabaseDetailLayout({
     <div className="flex min-h-screen">
       <aside className="fixed left-[220px] top-0 h-screen w-[240px] bg-[#0a0a0a] border-r border-[rgba(255,255,255,0.08)] z-10">
         <div className="p-6 border-b border-[rgba(255,255,255,0.08)]">
-          <Link href="/dashboard/databases" className="text-sm text-[#888888] hover:text-[#f0f0f0] transition-colors">
-            Back to Databases
+          <Link 
+            href={backLink} 
+            className="flex items-center gap-1.5 text-[13px] text-[#888888] hover:text-[#f0f0f0] transition-colors group"
+          >
+            <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+            {backText}
           </Link>
-          <div className="mt-3 font-semibold text-[#f0f0f0] truncate">
+          <div className="mt-4 font-semibold text-[#f0f0f0] truncate">
             {loading ? "Loading..." : databaseName}
           </div>
           <Link 

@@ -32,7 +32,7 @@ export default function DatabaseCard({ database, onDelete }: DatabaseCardProps) 
   };
 
   const handleView = () => {
-    router.push(`/dashboard/databases/${database.id}/overview`);
+    router.push(`/dashboard/databases/${database.id}/overview?from=databases`);
   };
 
   return (

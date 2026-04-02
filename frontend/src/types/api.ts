@@ -18,6 +18,8 @@ export interface DatabaseConnectionInfo {
   database: string;
   username: string;
   ssl_enabled: boolean;
+  password?: string;
+  auth_plugin?: string | null;
 }
 
 export interface MySQLConnectionCreate {
@@ -29,6 +31,7 @@ export interface MySQLConnectionCreate {
   username: string;
   password: string;
   ssl?: boolean;
+  auth_plugin?: string | null;
 }
 
 export interface DatabaseResponse {

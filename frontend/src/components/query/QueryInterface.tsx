@@ -292,11 +292,8 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       saveSessionResult(targetSessionId, response);
 
       const askedQuestion = question.trim();
-      const assistantContent =
-        response.explanation || response.sql_query || "Query executed successfully";
 
       const tempUserId = -Date.now();
-      const tempAssistantId = tempUserId - 1;
       const optimisticTimestamp = new Date().toISOString();
 
       setChatMessages((prev) => [
@@ -308,24 +305,15 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           content: askedQuestion,
           created_at: optimisticTimestamp,
         },
-        {
-          id: tempAssistantId,
-          session_id: targetSessionId,
-          role: "assistant",
-          content: assistantContent,
-          created_at: optimisticTimestamp,
-        },
       ]);
 
       void Promise.all([
         addMessage(targetSessionId, "user", askedQuestion),
-        addMessage(targetSessionId, "assistant", assistantContent),
       ])
-        .then(([savedUser, savedAssistant]) => {
+        .then(([savedUser]) => {
           setChatMessages((prev) =>
             prev.map((message) => {
               if (message.id === tempUserId) return savedUser;
-              if (message.id === tempAssistantId) return savedAssistant;
               return message;
             })
           );

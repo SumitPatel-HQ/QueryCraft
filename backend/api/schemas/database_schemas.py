@@ -27,6 +27,7 @@ class MySQLConnectionCreate(BaseModel):
     username: str
     password: str
     ssl: bool = True
+    auth_plugin: Optional[str] = None
 
 
 class DatabaseCreate(BaseModel):

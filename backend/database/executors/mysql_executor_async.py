@@ -53,27 +53,57 @@ class MySQLExecutorAsync:
 
         timeout = float(self.config.get("timeout", 30))
 
+        auth_plugin = self.config.get("auth_plugin")
+
+        pool_kwargs: dict[str, Any] = {
+            "host": self.config.get("host"),
+            "port": self.config.get("port", 3306),
+            "user": self.config.get("user"),
+            "password": self.config.get("password"),
+            "db": self.config.get("db") or self.config.get("database"),
+            "minsize": 1,
+            "maxsize": 10,
+            "connect_timeout": timeout,
+            "autocommit": True,
+            "ssl": ssl_context,
+        }
+
+        if auth_plugin:
+            pool_kwargs["auth_plugin"] = auth_plugin
+
         try:
-            self.pool = await aiomysql.create_pool(
-                host=self.config.get("host"),
-                port=self.config.get("port", 3306),
-                user=self.config.get("user"),
-                password=self.config.get("password"),
-                db=self.config.get("db") or self.config.get("database"),
-                minsize=1,
-                maxsize=10,
-                connect_timeout=timeout,
-                autocommit=True,
-                ssl=ssl_context,
-            )
+            try:
+                self.pool = await aiomysql.create_pool(**pool_kwargs)
+            except TypeError as exc:
+                # Older aiomysql versions may not accept auth_plugin.
+                if "auth_plugin" in pool_kwargs and "auth_plugin" in str(exc):
+                    pool_kwargs.pop("auth_plugin", None)
+                    self.pool = await aiomysql.create_pool(**pool_kwargs)
+                else:
+                    raise
         except (
             Exception
         ) as exc:  # pragma: no cover - covered via error mapping expectations
-            if exc.__class__.__name__ in {"OperationalError", "ProgrammingError"}:
-                raise AuthenticationError(
-                    "Failed to authenticate with MySQL", exc
-                ) from exc
-            raise ConnectionError("Failed to connect to MySQL", exc) from exc
+            exc_name = exc.__class__.__name__
+            exc_message = str(exc)
+            normalized = exc_message.lower()
+
+            if exc_name in {"OperationalError", "ProgrammingError"}:
+                auth_markers = [
+                    "access denied",
+                    "authentication",
+                    "auth",
+                    "password",
+                    "denied",
+                ]
+                if any(marker in normalized for marker in auth_markers):
+                    raise AuthenticationError(
+                        f"Failed to authenticate with MySQL: {exc_message}", exc
+                    ) from exc
+
+            raise ConnectionError(
+                f"Failed to connect to MySQL: {exc_message}", exc
+            ) from exc
 
     async def disconnect(self) -> None:
         """Close the current aiomysql pool if one exists."""

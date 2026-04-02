@@ -4,24 +4,40 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
+import { useAuthContext } from "@/components/providers/auth-provider";
 
 export default function BookmarksPage() {
   const router = useRouter();
   const { listBookmarks, deleteBookmark } = useChat();
+  const { loading, user } = useAuthContext();
   const [bookmarks, setBookmarks] = useState<Record<string, Array<{ id: number; session_id: number | null; note: string | null; bookmarked_at: string }>>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const data = await listBookmarks();
-      setBookmarks(data);
+      if (loading || !user) {
+        return;
+      }
+      try {
+        setError(null);
+        const data = await listBookmarks();
+        setBookmarks(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load bookmarks");
+      }
     }
     load();
-  }, [listBookmarks]);
+  }, [listBookmarks, loading, user]);
 
   async function remove(id: number) {
-    await deleteBookmark(id);
-    const data = await listBookmarks();
-    setBookmarks(data);
+    try {
+      setError(null);
+      await deleteBookmark(id);
+      const data = await listBookmarks();
+      setBookmarks(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update bookmarks");
+    }
   }
 
   const days = Object.keys(bookmarks);
@@ -32,6 +48,12 @@ export default function BookmarksPage() {
         <h1 className="text-[20px] font-semibold text-[#f0f0f0]">Bookmarks</h1>
         <p className="text-[12px] text-[#777777] mt-1">Saved sessions and messages grouped by date</p>
       </header>
+
+      {error ? (
+        <div className="rounded-[10px] border border-[rgba(248,113,113,0.35)] bg-[rgba(248,113,113,0.08)] px-4 py-3 text-sm text-[#fecaca]">
+          {error}
+        </div>
+      ) : null}
 
       {days.length === 0 ? (
         <div className="text-[#888888] text-sm">No bookmarks yet.</div>

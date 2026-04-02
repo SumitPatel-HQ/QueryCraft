@@ -29,6 +29,7 @@ const initialFormState: MySQLConnectionCreate = {
   username: "",
   password: "",
   ssl: true,
+  auth_plugin: null,
 };
 
 export default function MySQLConnectionModal({
@@ -107,164 +108,185 @@ export default function MySQLConnectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-[560px] border border-white/10 bg-[#0b0d10] p-0 text-white sm:rounded-2xl">
-        <div className="border-b border-white/8 bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.18),_transparent_48%)] px-6 py-5">
-          <DialogHeader className="space-y-2 text-left">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-200">
+      <DialogContent className="max-w-[600px] border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-0 text-[#f0f0f0] shadow-2xl sm:rounded-[12px] overflow-hidden">
+        <DialogHeader className="px-6 py-5 border-b border-[rgba(255,255,255,0.08)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] text-[#f0f0f0]">
               <ServerCog className="h-5 w-5" />
             </div>
-            <DialogTitle className="text-xl font-semibold tracking-tight text-white">
-              Connect live MySQL
-            </DialogTitle>
-            <DialogDescription className="max-w-[44ch] text-sm text-slate-300">
-              Verify a live MySQL database, store its schema, and surface the
-              connection in the sidebar instantly.
-            </DialogDescription>
-          </DialogHeader>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 sm:col-span-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Display name
-              </span>
-              <input
-                value={form.display_name}
-                onChange={(event) => updateField("display_name", event.target.value)}
-                disabled={submitting}
-                placeholder="Analytics Warehouse"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2 sm:col-span-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Description
-              </span>
-              <textarea
-                value={form.description ?? ""}
-                onChange={(event) => updateField("description", event.target.value)}
-                disabled={submitting}
-                rows={3}
-                placeholder="Optional note for teammates"
-                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2 sm:col-span-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Host
-              </span>
-              <input
-                value={form.host}
-                onChange={(event) => updateField("host", event.target.value)}
-                disabled={submitting}
-                placeholder="db.internal"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Port
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={65535}
-                value={form.port ?? 3306}
-                onChange={(event) => updateField("port", Number(event.target.value) || 3306)}
-                disabled={submitting}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Database
-              </span>
-              <input
-                value={form.database}
-                onChange={(event) => updateField("database", event.target.value)}
-                disabled={submitting}
-                placeholder="analytics"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Username
-              </span>
-              <input
-                value={form.username}
-                onChange={(event) => updateField("username", event.target.value)}
-                disabled={submitting}
-                placeholder="reporter"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                Password
-              </span>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) => updateField("password", event.target.value)}
-                disabled={submitting}
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-300/40 focus:bg-white/8"
-              />
-            </label>
+            <div className="space-y-1">
+              <DialogTitle className="text-[18px] font-semibold tracking-tight text-[#f0f0f0]">
+                Connect live MySQL
+              </DialogTitle>
+              <DialogDescription className="text-[13px] text-[#888888]">
+                Verify a live MySQL database and sync its schema instantly.
+              </DialogDescription>
+            </div>
           </div>
+        </DialogHeader>
 
-          <label className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-            <div>
-              <div className="text-sm font-medium text-white">Require SSL</div>
-              <div className="text-xs text-slate-400">
-                Keep transport encrypted for hosted production databases.
+        <form onSubmit={handleSubmit}>
+          <div className="max-h-[60vh] overflow-y-auto px-6 py-6 custom-scrollbar">
+            <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Display Name *
+                </span>
+                <input
+                  value={form.display_name}
+                  onChange={(event) => updateField("display_name", event.target.value)}
+                  disabled={submitting}
+                  placeholder="Analytics Warehouse"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Description (Optional)
+                </span>
+                <textarea
+                  value={form.description ?? ""}
+                  onChange={(event) => updateField("description", event.target.value)}
+                  disabled={submitting}
+                  rows={2}
+                  placeholder="Optional note for teammates..."
+                  className="w-full resize-none rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Host *
+                </span>
+                <input
+                  value={form.host}
+                  onChange={(event) => updateField("host", event.target.value)}
+                  disabled={submitting}
+                  placeholder="db.internal"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Port *
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={65535}
+                  value={form.port ?? 3306}
+                  onChange={(event) => updateField("port", Number(event.target.value) || 3306)}
+                  disabled={submitting}
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Database *
+                </span>
+                <input
+                  value={form.database}
+                  onChange={(event) => updateField("database", event.target.value)}
+                  disabled={submitting}
+                  placeholder="analytics"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Username *
+                </span>
+                <input
+                  value={form.username}
+                  onChange={(event) => updateField("username", event.target.value)}
+                  disabled={submitting}
+                  placeholder="root"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Password *
+                </span>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => updateField("password", event.target.value)}
+                  disabled={submitting}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <label className="space-y-1.5 sm:col-span-2">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#888888]">
+                  Auth Plugin (Optional)
+                </span>
+                <input
+                  value={form.auth_plugin ?? ""}
+                  onChange={(event) =>
+                    updateField(
+                      "auth_plugin",
+                      event.target.value.trim() ? event.target.value.trim() : null
+                    )
+                  }
+                  disabled={submitting}
+                  placeholder="caching_sha2_password"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111] px-4 py-2.5 text-[14px] text-[#f0f0f0] placeholder:text-[#444444] outline-none transition focus:border-[rgba(255,255,255,0.2)]"
+                />
+              </label>
+
+              <div className="flex items-center justify-between sm:col-span-2 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111111]/50 px-4 py-3">
+                <div className="space-y-0.5">
+                  <div className="text-[14px] font-medium text-[#f0f0f0]">Require SSL</div>
+                  <div className="text-[12px] text-[#888888]">
+                    Ensure transport is encrypted for secure connections.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.ssl)}
+                  onChange={(event) => updateField("ssl", event.target.checked)}
+                  disabled={submitting}
+                  className="h-4 w-4 rounded border-[rgba(255,255,255,0.2)] bg-transparent accent-white"
+                />
               </div>
             </div>
-            <input
-              type="checkbox"
-              checked={Boolean(form.ssl)}
-              onChange={(event) => updateField("ssl", event.target.checked)}
-              disabled={submitting}
-              className="h-4 w-4 rounded border-white/20 bg-transparent accent-emerald-400"
-            />
-          </label>
 
-          {error ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-              {error}
-            </div>
-          ) : null}
+            {error && (
+              <div className="mt-5 rounded-lg border border-red-900/20 bg-red-950/20 px-4 py-3 text-[13px] text-red-400">
+                {error}
+              </div>
+            )}
+          </div>
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end px-6 py-4 border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a]">
             <Button
               type="button"
               variant="ghost"
               onClick={handleClose}
               disabled={submitting}
-              className="rounded-xl border border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.06] hover:text-white"
+              className="rounded-lg px-6 py-2.5 text-[14px] text-[#888888] hover:text-[#f0f0f0] hover:bg-[#1a1a1a] transition-all"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={submitting || !canSubmit}
-              className="rounded-xl bg-emerald-300 text-[#04110d] hover:bg-emerald-200"
+              className="rounded-lg bg-[#f0f0f0] px-6 py-2.5 text-[14px] font-semibold text-[#0a0a0a] hover:bg-[#ffffff] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
-                <span className="inline-flex items-center gap-2">
+                <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Connecting...
                 </span>
               ) : (
-                "Create MySQL connection"
+                "Save Connection"
               )}
             </Button>
           </div>
@@ -272,4 +294,5 @@ export default function MySQLConnectionModal({
       </DialogContent>
     </Dialog>
   );
+
 }

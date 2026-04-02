@@ -276,6 +276,9 @@ async def create_mysql_database(
         "ssl": payload.ssl,
     }
 
+    if payload.auth_plugin:
+        config["auth_plugin"] = payload.auth_plugin
+
     try:
         connection_ok = await test_mysql_connection(config)
         if not connection_ok:
@@ -293,8 +296,17 @@ async def create_mysql_database(
     except HTTPException:
         raise
     except Exception as exc:
+        message = str(exc)
+        lower_message = message.lower()
+        if "failed to authenticate" in lower_message:
+            hint = (
+                "Invalid MySQL username/password. If you're using MySQL 8+ and still see this, "
+                "your server might require a specific auth plugin (e.g. 'mysql_native_password' or "
+                "'caching_sha2_password'). Try setting 'auth_plugin' in the request."
+            )
+            raise HTTPException(status_code=400, detail=f"{message}. {hint}") from exc
         raise HTTPException(
-            status_code=400, detail=f"MySQL connection failed: {str(exc)[:200]}"
+            status_code=400, detail=f"MySQL connection failed: {message[:200]}"
         ) from exc
 
     with get_db() as db:
