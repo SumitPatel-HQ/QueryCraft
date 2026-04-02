@@ -16,6 +16,7 @@ from api.services.upload_handler import DatabaseUploadHandler
 from api.services.live_mysql_service import (
     build_mysql_connection_string,
     fetch_mysql_schema,
+    fetch_mysql_schema_from_connection_string,
     parse_mysql_connection_string,
     test_mysql_connection,
 )
@@ -71,6 +72,10 @@ def _slugify_database_name(display_name: str) -> str:
     slug = display_name.lower().replace(" ", "_")
     slug = "".join(char for char in slug if char.isalnum() or char == "_")
     return slug or "mysql_connection"
+
+
+def _schema_column_name(column: dict) -> str:
+    return column.get("name") or column.get("column") or ""
 
 
 @router.get("", response_model=List[DatabaseResponse])
@@ -373,9 +378,14 @@ async def get_database_schema(database_id: int, user: dict = Depends(get_current
             return {"schema": database.schema_data, "source": "cached"}
 
         # Otherwise fetch fresh
-        schema_data = DatabaseConnectionManager.get_schema(
-            database.db_type, database.file_path or database.connection_string
-        )
+        if database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
 
         # Cache it
         database.schema_data = schema_data
@@ -412,9 +422,16 @@ async def get_database_erd(database_id: int, user: dict = Depends(get_current_us
                 )
 
         # Get schema data
-        schema_data = database.schema_data or DatabaseConnectionManager.get_schema(
-            database.db_type, database.file_path or database.connection_string
-        )
+        if database.schema_data:
+            schema_data = database.schema_data
+        elif database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
 
         # Convert to tables format for ERD service
         tables = []
@@ -423,7 +440,7 @@ async def get_database_erd(database_id: int, user: dict = Depends(get_current_us
                 "name": table_name,
                 "columns": [
                     {
-                        "name": col.get("name", ""),
+                        "name": _schema_column_name(col),
                         "type": col.get("type", "TEXT"),
                         "key": "PK"
                         if col.get("primary_key")
@@ -479,9 +496,16 @@ async def get_database_tables(database_id: int, user: dict = Depends(get_current
                 )
 
         # Get schema
-        schema_data = database.schema_data or DatabaseConnectionManager.get_schema(
-            database.db_type, database.file_path or database.connection_string
-        )
+        if database.schema_data:
+            schema_data = database.schema_data
+        elif database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
 
         return {
             "database_id": database_id,

@@ -11,6 +11,10 @@ from database.models import Database as DatabaseModel, QueryHistory
 from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services import determine_query_complexity, generate_query_explanation
+from api.services.live_mysql_service import (
+    execute_mysql_query_from_connection_string,
+    fetch_mysql_schema_from_connection_string,
+)
 from api.middleware.auth import get_current_user
 
 # Configure logging
@@ -77,9 +81,14 @@ async def query_database(
             logger.debug(f"Schema data exists: {database.schema_data is not None}")
 
             # Always fetch fresh schema to ensure accuracy
-            schema_data = DatabaseConnectionManager.get_schema(
-                database.db_type, database.file_path or database.connection_string
-            )
+            if database.db_type == "mysql":
+                schema_data = await fetch_mysql_schema_from_connection_string(
+                    database.connection_string
+                )
+            else:
+                schema_data = DatabaseConnectionManager.get_schema(
+                    database.db_type, database.file_path or database.connection_string
+                )
 
             # Update cached schema if different
             if schema_data != database.schema_data:
@@ -170,11 +179,18 @@ async def query_database(
                     f"Executing query on database: {database.file_path or database.connection_string}"
                 )
                 logger.info(f"SQL Query: {sql_query}")
-                results, columns = DatabaseConnectionManager.execute_query(
-                    database.db_type,
-                    database.file_path or database.connection_string,
-                    sql_query,
-                )
+                if database.db_type == "mysql":
+                    results = await execute_mysql_query_from_connection_string(
+                        database.connection_string,
+                        sql_query,
+                    )
+                    columns = list(results[0].keys()) if results else []
+                else:
+                    results, columns = DatabaseConnectionManager.execute_query(
+                        database.db_type,
+                        database.file_path or database.connection_string,
+                        sql_query,
+                    )
 
                 # Log result count
                 logger.info(
