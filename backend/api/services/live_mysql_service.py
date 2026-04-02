@@ -43,6 +43,7 @@ def parse_mysql_connection_string(connection_string: str) -> dict[str, Any]:
         "port": parsed["port"],
         "database": parsed["database"],
         "username": parsed["username"],
+        "password": parsed["password"],
         "ssl": parsed["ssl"],
     }
 

@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  DatabaseZap, 
   Plus, 
   Server, 
   Loader2, 
   Search,
   MessageSquare,
-  Trash2,
-  AlertCircle
+  Trash2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -152,74 +150,77 @@ export default function MySQLPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-3">
             {filteredConnections.map((connection) => {
               const info = connection.connection_info;
               return (
                 <div
                   key={connection.id}
-                  className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4 flex flex-col hover:-translate-y-1 transition-all cursor-pointer group"
+                  className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4 flex items-center gap-6 hover:border-[rgba(255,255,255,0.2)] transition-all cursor-pointer group"
                   onClick={() => router.push(`/dashboard/databases/${connection.id}/overview?from=mysql`)}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${connection.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#444444]'}`} />
-                      <span className="text-[12px] text-[#f0f0f0] font-medium leading-none">
-                        {connection.is_active ? 'Active' : 'Offline'}
-                      </span>
+                  <div className="flex items-center gap-3 min-w-[120px]">
+                    <div className={`w-2 h-2 rounded-full ${connection.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#444444]'}`} />
+                    <span className="text-[12px] text-[#f0f0f0] font-medium uppercase tracking-wider">
+                      {connection.is_active ? 'Active' : 'Offline'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 flex items-center min-w-0 gap-6">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[14px] font-semibold text-[#f0f0f0] truncate">
+                        {connection.display_name}
+                      </div>
+                      <div className="text-[12px] text-[#666666] truncate mt-0.5 font-mono">
+                        {info?.host || "Localhost"}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
+
+                    <div className="hidden md:flex flex-col min-w-[140px]">
+                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">Database</div>
+                      <div className="text-[13px] text-[#888888] truncate">{info?.database || "MYSQL"}</div>
+                    </div>
+
+                    <div className="hidden lg:flex flex-col min-w-[80px]">
+                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">Port</div>
+                      <div className="text-[13px] text-[#888888]">{info?.port || 3306}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-3 text-[11px] border border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a] text-[#888888] hover:text-[#f0f0f0]"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(connection.id);
+                          alert("Schema view coming soon");
                         }}
-                        className="p-1 hover:bg-[#1a1a1a] rounded transition-colors"
-                        title="Delete connection"
                       >
-                        <Trash2 size={14} className="text-[#666666] hover:text-[#ff4444]" />
-                      </button>
+                        View Schema
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-8 px-2.5 border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`/dashboard/chat?db=${connection.id}`, '_self');
+                        }}
+                      >
+                        <MessageSquare size={13} className="text-[#888888] group-hover:text-[#f0f0f0]" />
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="text-[14px] font-semibold text-[#f0f0f0] mb-1">
-                    {connection.display_name}
-                  </div>
-                  
-                  <div className="text-[12px] text-[#666666] mb-3 truncate">
-                    {info?.host || "Localhost"}
-                  </div>
-
-                  <div className="mt-auto pt-3 border-t border-[rgba(255,255,255,0.05)] flex items-center justify-between">
-                    <div className="text-[11px] text-[#666666] uppercase font-mono tracking-wider">
-                      {info?.database || "MYSQL"}
-                    </div>
-                    <div className="text-[11px] text-[#444444]">
-                      Port {info?.port || 3306}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      className="flex-1 h-8 text-[11px] border border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a] text-[#888888] hover:text-[#f0f0f0]"
+                    
+                    <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert("Schema view coming soon");
+                        handleDelete(connection.id);
                       }}
+                      className="p-1.5 hover:bg-red-500/10 rounded transition-colors group/trash"
+                      title="Delete connection"
                     >
-                      View Schema
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-8 px-2 border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(`/dashboard/chat?db=${connection.id}`, '_self');
-                      }}
-                    >
-                      <MessageSquare size={12} className="text-[#888888] hover:text-[#f0f0f0]" />
-                    </Button>
+                      <Trash2 size={14} className="text-[#444444] group-hover/trash:text-red-500" />
+                    </button>
                   </div>
                 </div>
               );
@@ -238,4 +239,3 @@ export default function MySQLPage() {
     </div>
   );
 }
-

@@ -41,6 +41,7 @@ def _parse_mysql_connection_info(connection_string: str | None) -> dict | None:
         "port": connection_info["port"],
         "database": connection_info["database"],
         "username": connection_info["username"],
+        "password": connection_info["password"],
         "ssl_enabled": connection_info["ssl"],
     }
 

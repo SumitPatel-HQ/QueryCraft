@@ -14,6 +14,8 @@ class DatabaseConnectionInfo(BaseModel):
     database: str
     username: str
     ssl_enabled: bool
+    password: Optional[str] = None
+    auth_plugin: Optional[str] = None
 
 
 class MySQLConnectionCreate(BaseModel):
