@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-status: planning
-stopped_at: Completed 03.1-03-PLAN.md
-last_updated: "2026-04-02T04:37:29.998Z"
+status: executing
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-04-02T06:42:08.995Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
 
 **Last Updated:** 2026-04-02
 **Current Phase:** 04
-**Status:** Ready to plan
+**Status:** Executing Phase 04
 
-**Last Completed Plan:** 03.1-03-PLAN.md
-**Next Plan:** 04-01-PLAN.md
+**Last Completed Plan:** 04-02-PLAN.md
+**Next Plan:** 04-03-PLAN.md
 
 ## Decisions
 
@@ -41,6 +41,9 @@ progress:
 - [Phase 03.1]: MySQL creation reuses the existing databases table and connection_string column to preserve metadata contracts.
 - [Phase 03.1]: MySQL runtime routes rebuild executor config from stored DSNs and bypass the legacy sync manager.
 - [Phase 03.1]: The sidebar now renders live MySQL cards directly from DatabaseResponse.connection_info via authenticated API state.
+- [Phase 04]: Formatter responses always include SQL in collapsible markdown for transparency.
+- [Phase 04]: Conversation history eviction removes oldest two messages to preserve user-assistant turn pairing under 20-message cap.
+- [Phase 04]: Added temporary ai.sql_generator and ai.sql_validator stubs to unblock ai package imports during parallel execution.
 
 ## Accumulated Context
 
@@ -59,8 +62,9 @@ progress:
 - Phase 03.1 Plan 01 — Duration: 4 min; Tasks: 2; Files: 6
 - Phase 03.1 Plan 02 — Duration: 10 min; Tasks: 2; Files: 5
 - Phase 03.1 Plan 03 — Duration: 4 min; Tasks: 2; Files: 5
+- Phase 04 Plan 02 — Duration: 4 min; Tasks: 3; Files: 7
 
 ## Session
 
-- **Last Session:** 2026-04-02T04:37:14.677Z
-- **Stopped At:** Completed 03.1-03-PLAN.md
+- **Last Session:** 2026-04-02T06:42:08.982Z
+- **Stopped At:** Completed 04-02-PLAN.md
