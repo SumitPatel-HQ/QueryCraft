@@ -39,9 +39,9 @@ Plans:
 ### Phase 04: Natural Language Query Interface
 **Goal:** Build end-to-end NL-to-SQL pipeline with multi-turn conversation, LLM-based SQL generation, validation, and formatted responses.
 **Requirements:** [NLQUERY-01, NLQUERY-02, NLQUERY-03, NLQUERY-04, NLQUERY-05, NLQUERY-06]
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 04-01-PLAN.md — AI pipeline core (prompt builder, SQL generator, validator)
+- [x] 04-01-PLAN.md — AI pipeline core (prompt builder, SQL generator, validator)
 - [x] 04-02-PLAN.md — Response formatting + conversation management
 - [ ] 04-03-PLAN.md — API orchestration (POST /query endpoint)

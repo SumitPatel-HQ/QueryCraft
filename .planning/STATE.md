@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-04-02T06:42:08.995Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-04-02T06:50:36.971Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -44,6 +44,8 @@ progress:
 - [Phase 04]: Formatter responses always include SQL in collapsible markdown for transparency.
 - [Phase 04]: Conversation history eviction removes oldest two messages to preserve user-assistant turn pairing under 20-message cap.
 - [Phase 04]: Added temporary ai.sql_generator and ai.sql_validator stubs to unblock ai package imports during parallel execution.
+- [Phase 04]: SQL generator uses a Protocol-based llm_client interface with generate(system_prompt, user_prompt) to keep providers swappable.
+- [Phase 04]: Validation failures can return (False, reason) or raise UnsafeQueryError via raise_on_error for strict orchestration paths.
 
 ## Accumulated Context
 
@@ -66,5 +68,5 @@ progress:
 
 ## Session
 
-- **Last Session:** 2026-04-02T06:42:08.982Z
-- **Stopped At:** Completed 04-02-PLAN.md
+- **Last Session:** 2026-04-02T06:50:36.959Z
+- **Stopped At:** Completed 04-01-PLAN.md
