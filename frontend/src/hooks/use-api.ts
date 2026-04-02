@@ -16,6 +16,7 @@ import type {
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
+  MySQLConnectionCreate,
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
@@ -95,6 +96,14 @@ export function useApi() {
     [getAuthToken]
   );
 
+  const createMySQLConnection = useCallback(
+    async (payload: MySQLConnectionCreate): Promise<DatabaseResponse> => {
+      const token = await getAuthToken();
+      return apiClient.createMySQLConnection(payload, token);
+    },
+    [getAuthToken]
+  );
+
   const deleteDatabase = useCallback(
     async (databaseId: number): Promise<DeleteDatabaseResponse> => {
       const token = await getAuthToken();
@@ -166,6 +175,7 @@ export function useApi() {
     getDatabases,
     getDatabase,
     uploadDatabase,
+    createMySQLConnection,
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,
@@ -179,6 +189,7 @@ export function useApi() {
     getDatabases,
     getDatabase,
     uploadDatabase,
+    createMySQLConnection,
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,

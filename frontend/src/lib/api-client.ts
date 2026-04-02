@@ -11,6 +11,7 @@ import type {
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
+  MySQLConnectionCreate,
   QueryRequest,
   QueryResponse,
   CacheStatsResponse,
@@ -115,6 +116,19 @@ export async function uploadDatabase(
   }
 
   return response.json();
+}
+
+export async function createMySQLConnection(
+  payload: MySQLConnectionCreate,
+  token: string | null
+): Promise<DatabaseResponse> {
+  return clientFetch<DatabaseResponse>("/api/v1/databases/mysql", token, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function deleteDatabase(

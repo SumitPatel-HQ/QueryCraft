@@ -12,6 +12,25 @@ export interface DatabaseCreate {
   description?: string | null;
 }
 
+export interface DatabaseConnectionInfo {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  ssl_enabled: boolean;
+}
+
+export interface MySQLConnectionCreate {
+  display_name: string;
+  description?: string | null;
+  host: string;
+  port?: number;
+  database: string;
+  username: string;
+  password: string;
+  ssl?: boolean;
+}
+
 export interface DatabaseResponse {
   id: number;
   name: string;
@@ -24,6 +43,7 @@ export interface DatabaseResponse {
   created_at: string; // ISO 8601 datetime
   last_accessed: string; // ISO 8601 datetime
   is_active: boolean;
+  connection_info?: DatabaseConnectionInfo | null;
 }
 
 export interface SchemaResponse {
