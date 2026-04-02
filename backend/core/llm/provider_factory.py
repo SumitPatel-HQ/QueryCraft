@@ -61,13 +61,7 @@ def _provider_available(provider_name: str, required_api_key: Optional[str]) -> 
     return bool(value)
 
 
-def get_llm_provider(
-    provider_name: Optional[str] = None,
-    model_name: Optional[str] = None,
-    timeout: Optional[int] = None,
-) -> LLMProvider:
-    _bootstrap_registry()
-
+def _provider_candidates(provider_name: Optional[str] = None) -> list[str]:
     requested = (
         (provider_name or LLMConfig.get_default_provider() or "").strip().lower()
     )
@@ -76,7 +70,19 @@ def get_llm_provider(
     fallback_order.extend([name for name in order if name not in fallback_order])
     if "gemini" not in fallback_order:
         fallback_order.append("gemini")
+    return fallback_order
 
+
+def get_llm_provider_chain(
+    provider_name: Optional[str] = None,
+    model_name: Optional[str] = None,
+    timeout: Optional[int] = None,
+) -> list[tuple[str, LLMProvider]]:
+    """Return all configured providers that can be initialized, in fallback order."""
+    _bootstrap_registry()
+
+    fallback_order = _provider_candidates(provider_name)
+    providers: list[tuple[str, LLMProvider]] = []
     skipped: list[str] = []
 
     for candidate in fallback_order:
@@ -120,17 +126,17 @@ def get_llm_provider(
                 exc_info=True,
             )
             continue
+
+        providers.append((candidate, provider))
+
+    if providers:
         logger.info(
-            "Selected LLM provider '%s' (chain=%s)",
-            candidate,
-            " -> ".join(fallback_order),
+            "Initialized LLM provider chain: %s",
+            " -> ".join(name for name, _ in providers),
         )
         if skipped:
-            logger.info(
-                "Provider fallback chain applied: %s",
-                " -> ".join(skipped + [candidate]),
-            )
-        return provider
+            logger.info("Skipped providers during chain initialization: %s", skipped)
+        return providers
 
     logger.warning("No configured provider available. Falling back to Gemini.")
     gemini_factory = PROVIDER_REGISTRY["gemini"]["factory"]
@@ -139,4 +145,19 @@ def get_llm_provider(
         "Provider fallback chain applied: %s -> gemini",
         " -> ".join(skipped) if skipped else "none",
     )
-    return provider
+    return [("gemini", provider)]
+
+
+def get_llm_provider(
+    provider_name: Optional[str] = None,
+    model_name: Optional[str] = None,
+    timeout: Optional[int] = None,
+) -> LLMProvider:
+    chain = get_llm_provider_chain(
+        provider_name=provider_name,
+        model_name=model_name,
+        timeout=timeout,
+    )
+    selected_name, selected_provider = chain[0]
+    logger.info("Selected LLM provider '%s'", selected_name)
+    return selected_provider

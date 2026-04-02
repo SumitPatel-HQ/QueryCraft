@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from fastapi import HTTPException
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -276,3 +277,107 @@ def test_mysql_query_route_uses_live_service_and_result_keys_for_columns(monkeyp
 
     assert result.columns == ["id", "email"]
     assert result.results == [{"id": 1, "email": "a@example.com"}]
+
+
+def test_empty_schema_allows_row_creation_guidance(monkeypatch):
+    _install_firebase_stubs()
+
+    from api.routers import queries
+    from api.schemas import QueryRequest
+
+    database = SimpleNamespace(
+        id=11,
+        name="empty_db",
+        display_name="Empty DB",
+        db_type="mysql",
+        file_path=None,
+        connection_string="mysql://reporter:supersecret@db.internal:3306/analytics?ssl=true",
+        schema_data=None,
+        last_queried=None,
+    )
+    fake_db = FakeDBSession(database)
+
+    @contextmanager
+    def fake_get_db():
+        yield fake_db
+
+    async def fake_fetch_schema(_connection_string):
+        return {}
+
+    async def fail_if_called(*_args, **_kwargs):
+        raise AssertionError("execution should not run for empty-schema guidance")
+
+    monkeypatch.setattr(queries, "get_db", fake_get_db)
+    monkeypatch.setattr(queries, "set_current_user_context", lambda db, user_id: None)
+    monkeypatch.setattr(
+        queries,
+        "fetch_mysql_schema_from_connection_string",
+        fake_fetch_schema,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        queries,
+        "execute_mysql_query_from_connection_string",
+        fail_if_called,
+        raising=False,
+    )
+
+    result = asyncio.run(
+        queries.query_database(
+            11,
+            QueryRequest(question="I want 3 rows to be created"),
+            {"uid": "user-123"},
+        )
+    )
+
+    assert result.generation_method == "empty_schema_guidance"
+    assert "CREATE TABLE new_table" in result.sql_query
+    assert "sample_3" in result.sql_query
+    assert result.results == []
+
+
+def test_empty_schema_blocks_non_creation_queries(monkeypatch):
+    _install_firebase_stubs()
+
+    from api.routers import queries
+    from api.schemas import QueryRequest
+
+    database = SimpleNamespace(
+        id=12,
+        name="empty_db",
+        display_name="Empty DB",
+        db_type="mysql",
+        file_path=None,
+        connection_string="mysql://reporter:supersecret@db.internal:3306/analytics?ssl=true",
+        schema_data=None,
+        last_queried=None,
+    )
+    fake_db = FakeDBSession(database)
+
+    @contextmanager
+    def fake_get_db():
+        yield fake_db
+
+    async def fake_fetch_schema(_connection_string):
+        return {}
+
+    monkeypatch.setattr(queries, "get_db", fake_get_db)
+    monkeypatch.setattr(queries, "set_current_user_context", lambda db, user_id: None)
+    monkeypatch.setattr(
+        queries,
+        "fetch_mysql_schema_from_connection_string",
+        fake_fetch_schema,
+        raising=False,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            queries.query_database(
+                12,
+                QueryRequest(question="Show me all users"),
+                {"uid": "user-123"},
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "No tables to work on" in str(exc_info.value.detail)

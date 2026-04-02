@@ -7,6 +7,8 @@ import re
 import logging
 from typing import List, Optional, Dict, Any
 
+from .config import LLMConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,30 +40,33 @@ class SQLValidator:
         lines = [line.strip() for line in sql.split("\n") if line.strip()]
 
         if len(lines) > 1:
-            # Look for the line that starts with SELECT
-            select_line_idx = None
+            # Look for the first SQL-start line (preserve CTEs beginning with WITH)
+            sql_start_idx = None
+            sql_starts = ("WITH", "SELECT", "INSERT", "UPDATE", "DELETE")
             for idx, line in enumerate(lines):
-                if line.upper().startswith("SELECT"):
-                    select_line_idx = idx
+                if line.upper().startswith(sql_starts):
+                    sql_start_idx = idx
                     break
 
-            if select_line_idx is not None:
-                # Take all lines from SELECT onwards that look like SQL
+            if sql_start_idx is not None:
                 sql_lines = []
-                for idx in range(select_line_idx, len(lines)):
+                for idx in range(sql_start_idx, len(lines)):
                     line = lines[idx]
                     # Stop if we hit a line that looks like explanation text
                     if any(
-                        word in line.lower()
-                        for word in ["this query", "explanation:", "note:", "the above"]
+                        marker in line.lower()
+                        for marker in [
+                            "this query",
+                            "explanation:",
+                            "note:",
+                            "the above",
+                        ]
                     ):
                         break
                     sql_lines.append(line)
 
-                # Join the SQL lines with spaces
                 sql = " ".join(sql_lines)
             else:
-                # If no SELECT found, take all lines that look like SQL
                 sql = " ".join(lines)
 
         # Clean up extra spaces

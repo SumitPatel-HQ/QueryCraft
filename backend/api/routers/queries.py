@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 import time
 import logging
 import hashlib
+import re
 from datetime import datetime, UTC
 
 from api.schemas import QueryRequest, QueryResponse
@@ -21,6 +22,63 @@ from api.middleware.auth import get_current_user
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["queries"])
+
+
+def _is_row_creation_request(question: str) -> bool:
+    """Detect prompts that ask to create/insert rows even when schema is empty."""
+    question_lower = question.lower()
+    row_terms = {"row", "rows", "record", "records", "entry", "entries"}
+    action_terms = {"create", "add", "insert", "generate", "make"}
+    return any(term in question_lower for term in row_terms) and any(
+        term in question_lower for term in action_terms
+    )
+
+
+def _build_row_creation_starter_sql(question: str) -> str:
+    """Build a safe starter SQL script for empty-schema row creation requests."""
+    row_match = re.search(r"\b(\d+)\b", question)
+    requested_rows = int(row_match.group(1)) if row_match else 3
+    requested_rows = max(1, min(requested_rows, 10))
+
+    values = ",\n  ".join(
+        [f"('sample_{index}')" for index in range(1, requested_rows + 1)]
+    )
+
+    return (
+        "CREATE TABLE new_table (\n"
+        "  id INTEGER PRIMARY KEY,\n"
+        "  value TEXT\n"
+        ");\n\n"
+        "INSERT INTO new_table (value)\n"
+        f"VALUES\n  {values};\n\n"
+        "SELECT * FROM new_table;"
+    )
+
+
+def _extract_cte_names(sql_query: str) -> set[str]:
+    """Extract CTE names defined in WITH clauses (normalized lowercase)."""
+    if not sql_query:
+        return set()
+
+    cte_pattern = re.compile(
+        r"(?i)\b(?:with(?:\s+recursive)?|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s+as\s*\("
+    )
+    return {match.lower() for match in cte_pattern.findall(sql_query)}
+
+
+def _invalid_physical_tables(
+    tables_used: list[str], available_tables: list[str], sql_query: str
+) -> list[str]:
+    """Return referenced names that are neither physical tables nor CTE aliases."""
+    available = {t.lower() for t in available_tables}
+    cte_names = _extract_cte_names(sql_query)
+    invalid: list[str] = []
+    for table in tables_used:
+        table_lower = table.lower()
+        if table_lower in available or table_lower in cte_names:
+            continue
+        invalid.append(table)
+    return invalid
 
 
 # Import query cache
@@ -101,9 +159,49 @@ async def query_database(
             )
 
             if not available_tables:
+                if _is_row_creation_request(request.question):
+                    execution_time_ms = int((time.time() - start_time) * 1000)
+                    starter_sql = _build_row_creation_starter_sql(request.question)
+                    response_data = {
+                        "original_question": request.question,
+                        "sql_query": starter_sql,
+                        "explanation": (
+                            "This database currently has no tables. "
+                            "Use this starter SQL to create a table and insert sample rows."
+                        ),
+                        "results": [],
+                        "columns": [],
+                        "confidence": 90,
+                        "generation_method": "empty_schema_guidance",
+                        "tables_used": [],
+                        "execution_time_ms": execution_time_ms,
+                        "query_complexity": "Easy",
+                        "why_this_query": (
+                            "No existing schema was available, so QueryCraft returned a "
+                            "starter script instead of failing the request."
+                        ),
+                    }
+
+                    history = QueryHistory(
+                        database_id=database_id,
+                        user_id=user_id,
+                        question=request.question,
+                        sql_query=starter_sql,
+                        execution_time_ms=execution_time_ms,
+                        result_count=0,
+                        confidence_score=90,
+                        success=True,
+                    )
+                    db.add(history)
+                    db.commit()
+                    return QueryResponse(**response_data)
+
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Database '{database.display_name}' has no tables. Please upload a valid database with tables.",
+                    detail=(
+                        "No tables to work on in the selected database. "
+                        "Create or import at least one table first."
+                    ),
                 )
 
             # Check cache first (speeds up repeated queries)
@@ -163,7 +261,11 @@ async def query_database(
             logger.info(f"📊 Available tables in database: {available_tables}")
 
             # Check if any referenced tables don't exist
-            invalid_tables = [t for t in tables_used if t not in available_tables]
+            invalid_tables = _invalid_physical_tables(
+                tables_used,
+                available_tables,
+                sql_query,
+            )
             if invalid_tables and available_tables:
                 error_msg = (
                     f"Query references tables that don't exist: {invalid_tables}. "

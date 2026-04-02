@@ -1,5 +1,5 @@
 def test_processor_fallback_when_provider_fails(monkeypatch):
-    from backend.core.nl_to_sql.processor import NLToSQLProcessor
+    from core.nl_to_sql.processor import NLToSQLProcessor
 
     class _Introspector:
         @staticmethod
@@ -42,3 +42,36 @@ def test_processor_fallback_when_provider_fails(monkeypatch):
         "tables_used",
         "tokens_used",
     }
+
+
+def test_processor_fallback_on_rate_limit_error(monkeypatch):
+    from core.nl_to_sql.processor import NLToSQLProcessor
+
+    class _FailingGenerator:
+        @staticmethod
+        def generate_sql_with_llm(question, schema):
+            return {
+                "sql_query": None,
+                "confidence_score": 0.0,
+                "explanation": "rate limited",
+                "error": "429 RESOURCE_EXHAUSTED",
+                "tokens_used": 0,
+            }
+
+    processor = NLToSQLProcessor(
+        schema={"users": [{"name": "id", "type": "INTEGER"}]}, introspector=None
+    )
+    processor.llm_generator = _FailingGenerator()
+    monkeypatch.setattr(
+        processor.pattern_matcher,
+        "generate_query",
+        lambda *_: {
+            "sql_query": "SELECT * FROM users;",
+            "explanation": "fallback used",
+        },
+    )
+
+    result = processor.process_query("top users by total revenue")
+
+    assert result["generation_method"] == "fallback"
+    assert result["sql_query"].lower().startswith("select")
