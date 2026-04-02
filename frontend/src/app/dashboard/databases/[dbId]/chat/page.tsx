@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -146,7 +146,6 @@ function HistoryCard({ item }: { item: QueryHistoryItem }) {
 
 export default function DatabaseChatHistoryPage() {
   const params = useParams();
-  const router = useRouter();
   const dbId = params.dbId as string;
   const id = parseInt(dbId, 10);
 

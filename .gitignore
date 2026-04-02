@@ -85,16 +85,18 @@ jspm_packages/
 # Guidelines (internal docs)
 .guidelines/
 .agents/
-.doc/
 .claude
 .github/
 .planning/
-
+.doc/
+*.txt
 # Ruff cache
 .ruff_cache/
+.pytest_cache
 
 firebaseconfig.ts
 
 # Firebase service account keys
 backend/privateKey.json
 backend/firebase-service-account.json
+

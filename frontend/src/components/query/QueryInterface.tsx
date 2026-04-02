@@ -30,6 +30,11 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     preselectedDatabaseId || (databases.length === 1 ? databases[0].id : null)
   );
 
+  // Sync availableDatabases with databases prop when it changes
+  useEffect(() => {
+    setAvailableDatabases(databases);
+  }, [databases]);
+
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -287,11 +292,8 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       saveSessionResult(targetSessionId, response);
 
       const askedQuestion = question.trim();
-      const assistantContent =
-        response.explanation || response.sql_query || "Query executed successfully";
 
       const tempUserId = -Date.now();
-      const tempAssistantId = tempUserId - 1;
       const optimisticTimestamp = new Date().toISOString();
 
       setChatMessages((prev) => [
@@ -303,24 +305,15 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           content: askedQuestion,
           created_at: optimisticTimestamp,
         },
-        {
-          id: tempAssistantId,
-          session_id: targetSessionId,
-          role: "assistant",
-          content: assistantContent,
-          created_at: optimisticTimestamp,
-        },
       ]);
 
       void Promise.all([
         addMessage(targetSessionId, "user", askedQuestion),
-        addMessage(targetSessionId, "assistant", assistantContent),
       ])
-        .then(([savedUser, savedAssistant]) => {
+        .then(([savedUser]) => {
           setChatMessages((prev) =>
             prev.map((message) => {
               if (message.id === tempUserId) return savedUser;
-              if (message.id === tempAssistantId) return savedAssistant;
               return message;
             })
           );
@@ -426,7 +419,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
           "w-full mx-auto rounded-3xl transition-all duration-200",
           isDraggingFile && "ring-1 ring-white/25 border-white/20"
         )}
-        style={{ maxWidth: "1000px" }}>
+          style={{ maxWidth: "1000px" }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -470,18 +463,18 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
                 }}
                 className="flex-1 bg-transparent border-0 px-1 py-2 text-[14px] leading-[1.35] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none disabled:opacity-50 resize-none overflow-hidden min-h-9 max-h-50"
               />
-            <Button
-              type="submit"
-              disabled={loading || !selectedDatabaseId || !question.trim()}
-              className={cn(
-                "w-11 h-11 rounded-full p-0 self-center flex items-center justify-center transition-all duration-200 shrink-0",
-                !loading && question.trim() && selectedDatabaseId
-                  ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
-                  : "bg-[#222222] text-white/20 opacity-50"
-              )}
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-            </Button>
+              <Button
+                type="submit"
+                disabled={loading || !selectedDatabaseId || !question.trim()}
+                className={cn(
+                  "w-11 h-11 rounded-full p-0 self-center flex items-center justify-center transition-all duration-200 shrink-0",
+                  !loading && question.trim() && selectedDatabaseId
+                    ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
+                    : "bg-[#222222] text-white/20 opacity-50"
+                )}
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </Button>
             </div>
           </form>
         </div>

@@ -21,6 +21,9 @@ class LLMConfig:
     # Gemini API Configuration
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+    # OpenRouter Configuration
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
+
     # Timeout and Performance
     LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "10"))
     MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "3"))
@@ -78,22 +81,39 @@ class LLMConfig:
             "gemini": "GEMINI_API_KEY",
             "openai": "OPENAI_API_KEY",
             "anthropic": "ANTHROPIC_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
         }
         key_var = key_map.get(provider_name.lower(), f"{provider_name.upper()}_API_KEY")
         return os.getenv(key_var, "")
 
     @classmethod
-    def get_model_name(cls, custom_model: Optional[str] = None) -> str:
+    def get_model_name(
+        cls, provider: str = "gemini", custom_model: Optional[str] = None
+    ) -> str:
         """
-        Get the model name to use
+        Get the model name to use for a specific provider
 
         Args:
+            provider: Provider name (gemini, openai, anthropic, openrouter)
             custom_model: Optional custom model override
 
         Returns:
             Model name to use
         """
-        return custom_model or os.getenv("GEMINI_MODEL", cls.GEMINI_MODEL)
+        if custom_model:
+            return custom_model
+
+        if not provider:
+            provider = "gemini"
+
+        model_env_map = {
+            "gemini": "GEMINI_MODEL",
+            "openai": "OPENAI_MODEL",
+            "anthropic": "ANTHROPIC_MODEL",
+            "openrouter": "OPENROUTER_MODEL",
+        }
+        env_var = model_env_map.get(provider.lower(), "GEMINI_MODEL")
+        return os.getenv(env_var, cls.GEMINI_MODEL)
 
     @classmethod
     def get_timeout(cls, custom_timeout: Optional[int] = None) -> int:

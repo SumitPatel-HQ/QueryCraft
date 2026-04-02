@@ -11,10 +11,12 @@ import type {
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
+  MySQLConnectionCreate,
   QueryRequest,
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
+  ERDResponse,
 } from "@/types/api";
 
 /**
@@ -116,6 +118,19 @@ export async function uploadDatabase(
   return response.json();
 }
 
+export async function createMySQLConnection(
+  payload: MySQLConnectionCreate,
+  token: string | null
+): Promise<DatabaseResponse> {
+  return clientFetch<DatabaseResponse>("/api/v1/databases/mysql", token, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function deleteDatabase(
   databaseId: number,
   token: string | null
@@ -155,6 +170,16 @@ export async function getDatabaseHistory(
 ): Promise<DatabaseHistoryResponse> {
   return clientFetch<DatabaseHistoryResponse>(
     `/api/v1/databases/${databaseId}/history`,
+    token
+  );
+}
+
+export async function getDatabaseERD(
+  databaseId: number,
+  token: string | null
+): Promise<ERDResponse> {
+  return clientFetch<ERDResponse>(
+    `/api/v1/databases/${databaseId}/erd`,
     token
   );
 }

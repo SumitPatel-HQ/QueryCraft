@@ -29,8 +29,8 @@ export default function DetailNav({ dbId, tabs }: DetailNavProps) {
             className={[
               "h-11 px-6 flex items-center gap-3 text-sm transition-colors border-l-2",
               active
-                ? "text-[#f0f0f0] bg-[rgba(255,255,255,0.06)] border-l-[#f0f0f0]"
-                : "text-[#888888] hover:text-[#f0f0f0] hover:bg-[rgba(255,255,255,0.05)] border-l-transparent",
+                ? "text-white bg-[#1a1a1a] border-l-white"
+                : "text-[#888888] hover:text-white hover:bg-[rgba(255,255,255,0.05)] border-l-transparent",
             ].join(" ")}
           >
             {t.label}

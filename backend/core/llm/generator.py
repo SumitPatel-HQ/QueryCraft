@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from .config import LLMConfig
 from .prompts import PromptTemplates
 from .validators import SQLValidator, ConfidenceScorer
-from .provider_factory import get_llm_provider
+from .provider_factory import get_llm_provider_chain
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +29,78 @@ class LLMSQLGenerator:
         self.prompts = PromptTemplates()
         self.validator = SQLValidator()
         self.confidence_scorer = ConfidenceScorer()
-        self.provider = get_llm_provider(model_name=model_name, timeout=timeout)
+        self.provider_chain = get_llm_provider_chain(
+            model_name=model_name, timeout=timeout
+        )
+        self.provider_name, self.provider = self.provider_chain[0]
         self.client = self.provider
 
         logger.info("LLMSQLGenerator initialized")
+
+    @staticmethod
+    def _is_retryable_provider_error(error: Optional[str]) -> bool:
+        if not error:
+            return False
+
+        msg = str(error).lower()
+        retryable_markers = [
+            "429",
+            "resource_exhausted",
+            "rate limit",
+            "quota",
+            "too many requests",
+            "provider unavailable",
+            "service unavailable",
+            "timeout",
+            "timed out",
+            "connection refused",
+            "max retries exceeded",
+            "network is unreachable",
+            "name resolution",
+        ]
+        return any(marker in msg for marker in retryable_markers)
+
+    def _generate_with_failover(self, prompt: str) -> Dict[str, Any]:
+        last_response: Dict[str, Any] = {
+            "text": None,
+            "success": False,
+            "error": "No provider available",
+            "tokens_used": 0,
+            "provider": None,
+        }
+
+        for idx, (provider_name, provider) in enumerate(self.provider_chain):
+            response = provider.generate(prompt)
+            response["provider"] = provider_name
+
+            if response.get("success"):
+                if idx > 0:
+                    logger.info("Provider failover succeeded with '%s'", provider_name)
+                return response
+
+            last_response = response
+            error = response.get("error")
+            retryable = self._is_retryable_provider_error(error)
+
+            if retryable and idx < len(self.provider_chain) - 1:
+                next_provider = self.provider_chain[idx + 1][0]
+                logger.warning(
+                    "Provider '%s' failed with retryable error (%s). Retrying with '%s'.",
+                    provider_name,
+                    error,
+                    next_provider,
+                )
+                continue
+
+            if not retryable:
+                logger.warning(
+                    "Provider '%s' failed with non-retryable error: %s",
+                    provider_name,
+                    error,
+                )
+            break
+
+        return last_response
 
     def generate_sql_with_llm(
         self, natural_language_query: str, schema_info: str, db_type: str = "sqlite"
@@ -60,8 +128,8 @@ class LLMSQLGenerator:
                 natural_language_query, schema_info, db_type
             )
 
-            # Call configured provider API
-            response = self.provider.generate(prompt)
+            # Call provider API with runtime failover for retryable capacity/network errors
+            response = self._generate_with_failover(prompt)
 
             if not response["success"]:
                 return {
@@ -69,6 +137,7 @@ class LLMSQLGenerator:
                     "confidence_score": 0.0,
                     "explanation": "Failed to generate SQL",
                     "error": response["error"],
+                    "provider": response.get("provider"),
                 }
 
             # Clean and validate SQL
@@ -127,6 +196,7 @@ class LLMSQLGenerator:
                 "error": None,
                 "tokens_used": response["tokens_used"],
                 "tables_used": tables,
+                "provider": response.get("provider"),
             }
 
         except Exception as e:

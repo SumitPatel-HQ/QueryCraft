@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, PanelLeftClose, PlusSquare, Search, Trash2 } from "lucide-react";
+import { MessageSquare, PanelLeftClose, PlusSquare, Search, Trash2, Bookmark } from "lucide-react";
 import { useChat, type ChatSession } from "@/hooks/use-chat";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -16,7 +16,7 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedSession = Number(searchParams.get("session") || 0);
-  const { listSessions, createSession, deleteSession, search } = useChat();
+  const { listSessions, createSession, deleteSession, search, listBookmarks, createBookmark, deleteBookmark } = useChat();
   const { isLoading: authLoading, isAuthenticated } = useAuth();
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -24,14 +24,33 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
   const [results, setResults] = useState<Array<{ message_id: number; session_id: number; session_title: string; snippet: string }>>([]);
   const [loading, setLoading] = useState(true);
 
+  const [bookmarkedSessions, setBookmarkedSessions] = useState<Record<number, number>>({});
+
+  const reloadBookmarks = useCallback(async () => {
+    try {
+      const data = await listBookmarks();
+      const bmMap: Record<number, number> = {};
+      Object.values(data).forEach((list) => {
+        list.forEach((bm) => {
+          if (bm.session_id) {
+            bmMap[bm.session_id] = bm.id;
+          }
+        });
+      });
+      setBookmarkedSessions(bmMap);
+    } catch (e) {
+      console.error("Failed to load bookmarks", e);
+    }
+  }, [listBookmarks]);
+
   const reloadSessions = useCallback(async () => {
     try {
-      const data = await listSessions();
+      const [data] = await Promise.all([listSessions(), reloadBookmarks()]);
       setSessions(data);
     } finally {
       setLoading(false);
     }
-  }, [listSessions]);
+  }, [listSessions, reloadBookmarks]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
@@ -93,6 +112,22 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
     }
   }
 
+  async function handleToggleBookmark(session: ChatSession, e: React.MouseEvent) {
+    e.stopPropagation();
+    const bookmarkId = bookmarkedSessions[session.id];
+    if (bookmarkId) {
+      await deleteBookmark(bookmarkId);
+      setBookmarkedSessions((prev) => {
+        const next = { ...prev };
+        delete next[session.id];
+        return next;
+      });
+    } else {
+      const bm = await createBookmark(session.id, undefined, session.title || "Untitled");
+      setBookmarkedSessions((prev) => ({ ...prev, [session.id]: bm.id }));
+    }
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -139,28 +174,39 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
               key={session.id}
               className={`group rounded-[10px] border ${selectedSession === session.id ? "border-[rgba(255,255,255,0.22)] bg-[#111111]" : "border-transparent hover:bg-[#111111]"}`}
             >
-              <button
-                onClick={() => router.push(`/dashboard/chat?session=${session.id}`)}
-                className="w-full text-left px-3 py-2.5"
-              >
-                <div className="flex items-start gap-2">
-                  <MessageSquare size={14} className="text-[#777777] mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-[#f0f0f0] truncate">{session.title || "Untitled"}</div>
-                    <div className="text-[11px] text-[#666666] mt-1">
-                      {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
+              <div className="relative">
+                <div
+                  onClick={() => router.push(`/dashboard/chat?session=${session.id}`)}
+                  className="w-full text-left px-3 py-2.5 cursor-pointer"
+                >
+                  <div className="flex items-start gap-2">
+                    <MessageSquare size={14} className="text-[#777777] mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="text-[13px] text-[#f0f0f0] truncate">{session.title || "Untitled"}</div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 z-10">
+                          <button
+                            onClick={(e) => handleToggleBookmark(session, e)}
+                            className={`transition-colors p-0.5 rounded-sm hover:bg-[#1f1f1f] ${bookmarkedSessions[session.id] ? "text-yellow-500 hover:text-yellow-400 opacity-100" : "text-[#666666] hover:text-white"}`}
+                            title={bookmarkedSessions[session.id] ? "Remove bookmark" : "Bookmark chat"}
+                          >
+                            <Bookmark size={12} fill={bookmarkedSessions[session.id] ? "currentColor" : "none"} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }}
+                            className="text-[#666666] hover:text-[#f87171] p-0.5 rounded-sm hover:bg-[#1f1f1f] transition-colors"
+                            title="Delete chat"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-[#666666] mt-0.5">
+                        {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true })}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </button>
-              <div className="px-3 pb-2">
-                <button
-                  onClick={() => handleDeleteSession(session.id)}
-                  className="text-[#666666] hover:text-[#f87171] transition-colors opacity-0 group-hover:opacity-100"
-                  title="Delete chat"
-                >
-                  <Trash2 size={13} />
-                </button>
               </div>
             </div>
           ))

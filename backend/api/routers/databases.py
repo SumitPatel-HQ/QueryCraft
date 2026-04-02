@@ -1,21 +1,82 @@
 """Database management API endpoints"""
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
-from typing import List
 from datetime import datetime, UTC
-import os
 import logging
+import os
+from typing import List
+from urllib.parse import parse_qs, unquote, urlparse
 
-from api.schemas import DatabaseResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+
+from api.schemas import DatabaseResponse, MySQLConnectionCreate
 from database.models import Database as DatabaseModel, QueryHistory
 from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services.upload_handler import DatabaseUploadHandler
+from api.services.live_mysql_service import (
+    build_mysql_connection_string,
+    fetch_mysql_schema,
+    fetch_mysql_schema_from_connection_string,
+    parse_mysql_connection_string,
+    test_mysql_connection,
+)
 from api.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
+
+
+def _parse_mysql_connection_info(connection_string: str | None) -> dict | None:
+    if not connection_string:
+        return None
+
+    parsed = urlparse(connection_string)
+    if parsed.scheme != "mysql":
+        return None
+
+    connection_info = parse_mysql_connection_string(connection_string)
+    return {
+        "host": connection_info["host"],
+        "port": connection_info["port"],
+        "database": connection_info["database"],
+        "username": connection_info["username"],
+        "password": connection_info["password"],
+        "ssl_enabled": connection_info["ssl"],
+    }
+
+
+def _serialize_database(database: DatabaseModel) -> dict:
+    payload = {
+        "id": database.id,
+        "name": database.name,
+        "display_name": database.display_name,
+        "description": database.description,
+        "db_type": database.db_type,
+        "table_count": database.table_count,
+        "row_count": database.row_count,
+        "size_mb": database.size_mb,
+        "created_at": database.created_at,
+        "last_accessed": database.last_accessed,
+        "is_active": database.is_active,
+    }
+
+    if database.db_type == "mysql":
+        payload["connection_info"] = _parse_mysql_connection_info(
+            database.connection_string
+        )
+
+    return payload
+
+
+def _slugify_database_name(display_name: str) -> str:
+    slug = display_name.lower().replace(" ", "_")
+    slug = "".join(char for char in slug if char.isalnum() or char == "_")
+    return slug or "mysql_connection"
+
+
+def _schema_column_name(column: dict) -> str:
+    return column.get("name") or column.get("column") or ""
 
 
 @router.get("", response_model=List[DatabaseResponse])
@@ -34,23 +95,7 @@ async def list_databases(user: dict = Depends(get_current_user)):
             .all()
         )
 
-        # Convert to dict to avoid DetachedInstanceError
-        return [
-            {
-                "id": db_obj.id,
-                "name": db_obj.name,
-                "display_name": db_obj.display_name,
-                "description": db_obj.description,
-                "db_type": db_obj.db_type,
-                "table_count": db_obj.table_count,
-                "row_count": db_obj.row_count,
-                "size_mb": db_obj.size_mb,
-                "created_at": db_obj.created_at,
-                "last_accessed": db_obj.last_accessed,
-                "is_active": db_obj.is_active,
-            }
-            for db_obj in databases
-        ]
+        return [_serialize_database(db_obj) for db_obj in databases]
 
 
 @router.get("/{database_id}", response_model=DatabaseResponse)
@@ -74,20 +119,7 @@ async def get_database(database_id: int, user: dict = Depends(get_current_user))
         database.last_accessed = datetime.now(UTC)
         db.commit()
 
-        # Convert to dict to avoid DetachedInstanceError
-        return {
-            "id": database.id,
-            "name": database.name,
-            "display_name": database.display_name,
-            "description": database.description,
-            "db_type": database.db_type,
-            "table_count": database.table_count,
-            "row_count": database.row_count,
-            "size_mb": database.size_mb,
-            "created_at": database.created_at,
-            "last_accessed": database.last_accessed,
-            "is_active": database.is_active,
-        }
+        return _serialize_database(database)
 
 
 @router.post("/upload")
@@ -227,6 +259,78 @@ async def upload_database(
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)[:200]}")
 
 
+@router.post("/mysql", response_model=DatabaseResponse)
+async def create_mysql_database(
+    payload: MySQLConnectionCreate,
+    user: dict = Depends(get_current_user),
+):
+    """Create a persisted live MySQL connection for the authenticated user."""
+    user_id = user.get("uid")
+    config = {
+        "host": payload.host,
+        "port": payload.port,
+        "db": payload.database,
+        "database": payload.database,
+        "user": payload.username,
+        "username": payload.username,
+        "password": payload.password,
+        "ssl": payload.ssl,
+    }
+
+    if payload.auth_plugin:
+        config["auth_plugin"] = payload.auth_plugin
+
+    try:
+        connection_ok = await test_mysql_connection(config)
+        if not connection_ok:
+            raise HTTPException(status_code=400, detail="Unable to connect to MySQL")
+
+        schema_data = await fetch_mysql_schema(config)
+        connection_string = build_mysql_connection_string(
+            host=payload.host,
+            port=payload.port,
+            database=payload.database,
+            username=payload.username,
+            password=payload.password,
+            ssl=payload.ssl,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        message = str(exc)
+        lower_message = message.lower()
+        if "failed to authenticate" in lower_message:
+            hint = (
+                "Invalid MySQL username/password. If you're using MySQL 8+ and still see this, "
+                "your server might require a specific auth plugin (e.g. 'mysql_native_password' or "
+                "'caching_sha2_password'). Try setting 'auth_plugin' in the request."
+            )
+            raise HTTPException(status_code=400, detail=f"{message}. {hint}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"MySQL connection failed: {message[:200]}"
+        ) from exc
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = DatabaseModel(
+            name=_slugify_database_name(payload.display_name),
+            display_name=payload.display_name,
+            description=payload.description,
+            db_type="mysql",
+            connection_string=connection_string,
+            schema_data=schema_data,
+            table_count=len(schema_data),
+            row_count=0,
+            size_mb=None,
+            is_active=True,
+            user_id=user_id,
+        )
+        db.add(database)
+        db.commit()
+        db.refresh(database)
+        return _serialize_database(database)
+
+
 @router.delete("/{database_id}")
 async def delete_database(database_id: int, user: dict = Depends(get_current_user)):
     """Delete a database"""
@@ -287,15 +391,94 @@ async def get_database_schema(database_id: int, user: dict = Depends(get_current
             return {"schema": database.schema_data, "source": "cached"}
 
         # Otherwise fetch fresh
-        schema_data = DatabaseConnectionManager.get_schema(
-            database.db_type, database.file_path or database.connection_string
-        )
+        if database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
 
         # Cache it
         database.schema_data = schema_data
         db.commit()
 
         return {"schema": schema_data, "source": "fresh"}
+
+
+@router.get("/{database_id}/erd")
+async def get_database_erd(database_id: int, user: dict = Depends(get_current_user)):
+    """Get ERD (Entity Relationship Diagram) for specific database as Mermaid syntax"""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching ERD for database {database_id}")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .first()
+        )
+        if not database:
+            raise HTTPException(status_code=404, detail="Database not found")
+
+        # Validate file exists for SQLite
+        if database.db_type == "sqlite" and database.file_path:
+            import os
+
+            if not os.path.exists(database.file_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Database file not found at: {database.file_path}",
+                )
+
+        # Get schema data
+        if database.schema_data:
+            schema_data = database.schema_data
+        elif database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
+
+        # Convert to tables format for ERD service
+        tables = []
+        for table_name, columns in schema_data.items():
+            table_info = {
+                "name": table_name,
+                "columns": [
+                    {
+                        "name": _schema_column_name(col),
+                        "type": col.get("type", "TEXT"),
+                        "key": "PK"
+                        if col.get("primary_key")
+                        else ("FK" if col.get("foreign_key") else ""),
+                    }
+                    for col in columns
+                ],
+            }
+            tables.append(table_info)
+
+        # Infer relationships
+        from api.services import infer_relationships
+
+        relationships = infer_relationships(schema_data)
+
+        # Generate Mermaid ERD
+        from api.services import generate_mermaid_erd
+
+        mermaid_erd = generate_mermaid_erd(tables, relationships)
+
+        return {
+            "mermaid": mermaid_erd,
+            "tables": tables,
+            "relationships": relationships,
+        }
 
 
 @router.get("/{database_id}/tables")
@@ -326,9 +509,16 @@ async def get_database_tables(database_id: int, user: dict = Depends(get_current
                 )
 
         # Get schema
-        schema_data = database.schema_data or DatabaseConnectionManager.get_schema(
-            database.db_type, database.file_path or database.connection_string
-        )
+        if database.schema_data:
+            schema_data = database.schema_data
+        elif database.db_type == "mysql":
+            schema_data = await fetch_mysql_schema_from_connection_string(
+                database.connection_string
+            )
+        else:
+            schema_data = DatabaseConnectionManager.get_schema(
+                database.db_type, database.file_path or database.connection_string
+            )
 
         return {
             "database_id": database_id,
@@ -340,7 +530,9 @@ async def get_database_tables(database_id: int, user: dict = Depends(get_current
 
 
 @router.get("/{database_id}/history")
-async def get_database_history(database_id: int, user: dict = Depends(get_current_user)):
+async def get_database_history(
+    database_id: int, user: dict = Depends(get_current_user)
+):
     """Get query history for a specific database"""
     user_id = user.get("uid")
     logger.info(f"User {user_id} fetching query history for database {database_id}")

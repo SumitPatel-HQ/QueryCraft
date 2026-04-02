@@ -6,8 +6,8 @@
 
 "use client";
 
+import { useCallback, useMemo, useRef } from "react";
 import { useAuthContext } from "@/components/providers/auth-provider";
-import { useCallback, useMemo } from "react";
 import * as apiClient from "@/lib/api-client";
 import type {
   DatabaseResponse,
@@ -16,21 +16,40 @@ import type {
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
+  MySQLConnectionCreate,
   QueryResponse,
   CacheStatsResponse,
   CacheClearResponse,
+  ERDResponse,
 } from "@/types/api";
 
 export function useApi() {
   const { getToken, loading, user } = useAuthContext();
+  // Use refs to avoid stale closure issues in async functions
+  const loadingRef = useRef(loading);
+  const userRef = useRef(user);
+
+  // Keep refs updated with latest values
+  loadingRef.current = loading;
+  userRef.current = user;
 
   // Helper to get token for each request
   const getAuthToken = useCallback(async () => {
-    if (loading) {
+    // Wait for auth to be ready (handles race condition on page reload)
+    const maxWaitTime = 5000; // 5 seconds max wait
+    const checkInterval = 50; // Check every 50ms
+    let waited = 0;
+
+    while (loadingRef.current && waited < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      waited += checkInterval;
+    }
+
+    if (loadingRef.current) {
       throw new Error("Authentication is still loading");
     }
 
-    if (!user) {
+    if (!userRef.current) {
       throw new Error("Missing authentication token");
     }
 
@@ -46,7 +65,7 @@ export function useApi() {
       console.warn("Failed to get auth token:", error);
       throw error;
     }
-  }, [getToken, loading, user]);
+  }, [getToken]);
 
   // ============================================================================
   // Database Operations
@@ -73,6 +92,14 @@ export function useApi() {
     ): Promise<DatabaseUploadResponse> => {
       const token = await getAuthToken();
       return apiClient.uploadDatabase(file, displayName, description, token);
+    },
+    [getAuthToken]
+  );
+
+  const createMySQLConnection = useCallback(
+    async (payload: MySQLConnectionCreate): Promise<DatabaseResponse> => {
+      const token = await getAuthToken();
+      return apiClient.createMySQLConnection(payload, token);
     },
     [getAuthToken]
   );
@@ -109,6 +136,14 @@ export function useApi() {
     [getAuthToken]
   );
 
+  const getDatabaseERD = useCallback(
+    async (databaseId: number): Promise<ERDResponse> => {
+      const token = await getAuthToken();
+      return apiClient.getDatabaseERD(databaseId, token);
+    },
+    [getAuthToken]
+  );
+
   // ============================================================================
   // Query Operations
   // ============================================================================
@@ -140,24 +175,27 @@ export function useApi() {
     getDatabases,
     getDatabase,
     uploadDatabase,
+    createMySQLConnection,
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,
     getDatabaseHistory,
     // Query operations
     queryDatabase,
-    // Cache operations
+    getDatabaseERD,
     getCacheStats,
     clearCache,
   }), [
     getDatabases,
     getDatabase,
     uploadDatabase,
+    createMySQLConnection,
     deleteDatabase,
     getDatabaseSchema,
     getDatabaseTables,
     getDatabaseHistory,
     queryDatabase,
+    getDatabaseERD,
     getCacheStats,
     clearCache,
   ]);

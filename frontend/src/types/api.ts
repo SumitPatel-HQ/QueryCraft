@@ -12,6 +12,28 @@ export interface DatabaseCreate {
   description?: string | null;
 }
 
+export interface DatabaseConnectionInfo {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  ssl_enabled: boolean;
+  password?: string;
+  auth_plugin?: string | null;
+}
+
+export interface MySQLConnectionCreate {
+  display_name: string;
+  description?: string | null;
+  host: string;
+  port?: number;
+  database: string;
+  username: string;
+  password: string;
+  ssl?: boolean;
+  auth_plugin?: string | null;
+}
+
 export interface DatabaseResponse {
   id: number;
   name: string;
@@ -24,6 +46,7 @@ export interface DatabaseResponse {
   created_at: string; // ISO 8601 datetime
   last_accessed: string; // ISO 8601 datetime
   is_active: boolean;
+  connection_info?: DatabaseConnectionInfo | null;
 }
 
 export interface SchemaResponse {
@@ -129,6 +152,34 @@ export interface CacheClearResponse {
   success: boolean;
   message: string;
   error?: string;
+}
+
+// ============================================================================
+// ERD Types
+// ============================================================================
+
+export interface ERDColumn {
+  name: string;
+  type: string;
+  key: string;
+}
+
+export interface ERDTable {
+  name: string;
+  columns: ERDColumn[];
+}
+
+export interface ERDRelationship {
+  from: string;
+  to: string;
+  type: string;
+  via: string;
+}
+
+export interface ERDResponse {
+  mermaid: string;
+  tables: ERDTable[];
+  relationships: ERDRelationship[];
 }
 
 // ============================================================================
