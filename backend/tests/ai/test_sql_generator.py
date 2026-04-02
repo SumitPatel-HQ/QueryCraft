@@ -68,3 +68,20 @@ def test_generate_sql_raises_after_max_retries() -> None:
         assert False, "Expected ValueError for exhausted retries"
     except ValueError as exc:
         assert "extract" in str(exc).lower() or "generate" in str(exc).lower()
+
+
+def test_generate_sql_retries_when_extracted_sql_is_unsafe() -> None:
+    from ai.sql_generator import generate_sql
+
+    client = StubLLMClient(
+        [
+            "DELETE FROM users",
+            "SELECT id FROM users",
+        ]
+    )
+
+    sql, was_refined = generate_sql("sys", "user", client)
+
+    assert sql == "SELECT id FROM users"
+    assert was_refined is True
+    assert len(client.calls) == 2

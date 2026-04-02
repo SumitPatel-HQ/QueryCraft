@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
+from ai.sql_validator import validate_sql
+
 
 FENCED_SQL_PATTERN = re.compile(r"```(?:sql)?\s*(.*?)\s*```", re.IGNORECASE | re.DOTALL)
 RAW_SQL_PATTERN = re.compile(r"\b(?:SELECT|WITH)\b[\s\S]*", re.IGNORECASE)
@@ -43,7 +45,18 @@ def generate_sql(
         extracted_sql = _extract_sql(response)
 
         if extracted_sql:
-            return extracted_sql, was_refined
+            is_valid, reason = validate_sql(extracted_sql, dialect="generic")
+            if is_valid:
+                return extracted_sql, was_refined
+
+            if attempt < 2:
+                was_refined = True
+                current_user_prompt = (
+                    f"{current_user_prompt}\n\n"
+                    f"Previous output failed validation: {reason}. "
+                    "Return only valid SELECT/WITH SQL without markdown or explanation."
+                )
+                continue
 
         if attempt < 2:
             was_refined = True
