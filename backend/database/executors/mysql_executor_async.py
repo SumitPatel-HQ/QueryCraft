@@ -1,0 +1,157 @@
+"""Async MySQL executor backed by aiomysql connection pooling."""
+
+from __future__ import annotations
+
+import re
+import ssl as ssl_module
+from types import SimpleNamespace
+from typing import Any
+
+try:
+    import aiomysql
+except ImportError:  # pragma: no cover - exercised only when dependency is absent
+    aiomysql = SimpleNamespace(create_pool=None)
+
+from database.exceptions import (
+    AuthenticationError,
+    ConnectionError,
+    QueryTimeoutError,
+    SchemaIntrospectionError,
+    UnsafeQueryError,
+)
+
+
+_SELECT_PATTERN = re.compile(r"^\s*select\b", re.IGNORECASE)
+_INTROSPECTION_SQL = """
+SELECT
+    TABLE_NAME AS table_name,
+    COLUMN_NAME AS column_name,
+    DATA_TYPE AS data_type,
+    IS_NULLABLE AS is_nullable
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+ORDER BY TABLE_NAME, ORDINAL_POSITION
+"""
+
+
+class MySQLExecutorAsync:
+    """Execute safe read-only MySQL operations through an async pool."""
+
+    def __init__(self) -> None:
+        self.pool: Any | None = None
+        self.config: dict[str, Any] = {}
+
+    async def connect(self, config: dict[str, Any]) -> None:
+        """Create an aiomysql pool for the supplied MySQL connection config."""
+        if getattr(aiomysql, "create_pool", None) is None:
+            raise ConnectionError("aiomysql is required for MySQL async execution")
+
+        self.config = dict(config)
+        ssl_context = None
+        if self.config.get("ssl"):
+            ssl_context = ssl_module.create_default_context()
+
+        timeout = float(self.config.get("timeout", 30))
+
+        try:
+            self.pool = await aiomysql.create_pool(
+                host=self.config.get("host"),
+                port=self.config.get("port", 3306),
+                user=self.config.get("user"),
+                password=self.config.get("password"),
+                db=self.config.get("db") or self.config.get("database"),
+                minsize=1,
+                maxsize=10,
+                connect_timeout=timeout,
+                autocommit=True,
+                ssl=ssl_context,
+            )
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - covered via error mapping expectations
+            if exc.__class__.__name__ in {"OperationalError", "ProgrammingError"}:
+                raise AuthenticationError(
+                    "Failed to authenticate with MySQL", exc
+                ) from exc
+            raise ConnectionError("Failed to connect to MySQL", exc) from exc
+
+    async def disconnect(self) -> None:
+        """Close the current aiomysql pool if one exists."""
+        if self.pool is not None:
+            self.pool.close()
+            await self.pool.wait_closed()
+            self.pool = None
+
+    async def test_connection(self) -> bool:
+        """Run a lightweight connectivity check against the active pool."""
+        try:
+            if self.pool is None:
+                await self.connect(self.config)
+            async with self.pool.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute("SELECT 1")
+                    await cursor.fetchone()
+            return True
+        except Exception:
+            return False
+
+    async def introspect_schema(self) -> dict[str, list[dict[str, Any]]]:
+        """Return MySQL schema metadata in the shared executor format."""
+        try:
+            if self.pool is None:
+                await self.connect(self.config)
+            async with self.pool.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute(_INTROSPECTION_SQL)
+                    rows = await cursor.fetchall()
+                    columns = [column[0] for column in cursor.description]
+        except Exception as exc:
+            raise SchemaIntrospectionError(
+                "Failed to introspect MySQL schema", exc
+            ) from exc
+
+        schema: dict[str, list[dict[str, Any]]] = {}
+        for row in self._rows_to_dicts(rows, columns):
+            schema.setdefault(row["table_name"], []).append(
+                {
+                    "column": row["column_name"],
+                    "type": row["data_type"],
+                    "nullable": row["is_nullable"] == "YES",
+                }
+            )
+        return schema
+
+    async def execute_query(
+        self,
+        sql: str,
+        params: list[Any] | tuple[Any, ...] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Execute a SELECT query and return rows as dictionaries."""
+        if not _SELECT_PATTERN.match(sql):
+            raise UnsafeQueryError("Only SELECT statements are allowed")
+
+        try:
+            if self.pool is None:
+                await self.connect(self.config)
+            async with self.pool.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute(sql, params)
+                    rows = await cursor.fetchall()
+                    columns = [column[0] for column in cursor.description]
+        except UnsafeQueryError:
+            raise
+        except TimeoutError as exc:
+            raise QueryTimeoutError("MySQL query timed out", exc) from exc
+        except Exception as exc:
+            raise ConnectionError("Failed to execute MySQL query", exc) from exc
+
+        return self._rows_to_dicts(rows, columns)
+
+    @staticmethod
+    def _rows_to_dicts(
+        rows: list[Any] | tuple[Any, ...], columns: list[str]
+    ) -> list[dict[str, Any]]:
+        """Convert cursor rows into a list of column-mapped dictionaries."""
+        if rows and isinstance(rows[0], dict):
+            return [dict(row) for row in rows]
+        return [dict(zip(columns, row)) for row in rows]

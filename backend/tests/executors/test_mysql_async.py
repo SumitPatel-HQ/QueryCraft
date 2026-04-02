@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -26,7 +26,7 @@ class FakePool:
     def __init__(self, connection=None):
         self.connection = connection
         self.wait_closed = AsyncMock()
-        self.close = AsyncMock()
+        self.close = Mock()
 
     def acquire(self):
         return FakeAcquire(self.connection)
@@ -81,7 +81,7 @@ def test_disconnect_closes_pool():
 
     asyncio.run(executor.disconnect())
 
-    pool.close.assert_awaited_once()
+    pool.close.assert_called_once()
     pool.wait_closed.assert_awaited_once()
     assert executor.pool is None
 

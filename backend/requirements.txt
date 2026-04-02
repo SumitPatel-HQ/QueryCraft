@@ -11,6 +11,7 @@ firebase-admin>=6.0.0
 # Database drivers and ORM
 psycopg2-binary>=2.9.5
 asyncpg>=0.30.0
+aiomysql>=0.2.0
 sqlalchemy>=2.0.0
 alembic>=1.12.0
 
