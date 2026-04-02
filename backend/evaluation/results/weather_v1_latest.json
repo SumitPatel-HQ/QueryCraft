@@ -1,0 +1,131 @@
+{
+  "summary": {
+    "total": 10,
+    "execution_accuracy": 0.7,
+    "exact_match": 0.0,
+    "avg_token_f1": 0.752,
+    "syntax_valid_rate": 1.0
+  },
+  "details": [
+    {
+      "id": "w1",
+      "question": "What is the average temperature?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT AVG(Temp_C) FROM project_1___weather_dataset",
+      "gold_sql": "SELECT AVG(Temp_C) AS avg_temp_c FROM \"project_1___weather_dataset\";",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.6
+    },
+    {
+      "id": "w2",
+      "question": "What is the maximum wind speed recorded?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT MAX(Wind_Speed_km_h) FROM project_1___weather_dataset",
+      "gold_sql": "SELECT MAX(Wind_Speed_km_h) AS max_wind_speed FROM \"project_1___weather_dataset\";",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.6
+    },
+    {
+      "id": "w3",
+      "question": "How many rows mention rain in weather?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT COUNT(*) FROM project_1___weather_dataset WHERE Weather LIKE '%Rain%'",
+      "gold_sql": "SELECT COUNT(*) AS rain_rows FROM \"project_1___weather_dataset\" WHERE Weather LIKE '%Rain%';",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.778
+    },
+    {
+      "id": "w4",
+      "question": "Show top 5 hottest timestamps with temperature.",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT Date_Time, Temp_C FROM project_1___weather_dataset ORDER BY Temp_C DESC LIMIT 5",
+      "gold_sql": "SELECT Date_Time, Temp_C FROM \"project_1___weather_dataset\" ORDER BY Temp_C DESC LIMIT 5;",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.9
+    },
+    {
+      "id": "w5",
+      "question": "How many rows have visibility below 1 km?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT COUNT(*) FROM project_1___weather_dataset WHERE Visibility_km < 1",
+      "gold_sql": "SELECT COUNT(*) AS low_visibility_rows FROM \"project_1___weather_dataset\" WHERE Visibility_km < 1;",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.778
+    },
+    {
+      "id": "w6",
+      "question": "When was the highest pressure recorded?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT Date_Time FROM project_1___weather_dataset ORDER BY Press_kPa DESC LIMIT 1",
+      "gold_sql": "SELECT Date_Time, Press_kPa FROM \"project_1___weather_dataset\" ORDER BY Press_kPa DESC LIMIT 1;",
+      "pred_error": null,
+      "exec_match": false,
+      "exact_match": false,
+      "token_f1": 0.8
+    },
+    {
+      "id": "w7",
+      "question": "How many rows mention snow in weather?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT COUNT(*) FROM project_1___weather_dataset WHERE Weather LIKE '%Snow%'",
+      "gold_sql": "SELECT COUNT(*) AS snow_rows FROM \"project_1___weather_dataset\" WHERE Weather LIKE '%Snow%';",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.778
+    },
+    {
+      "id": "w8",
+      "question": "What is average temperature per weather condition for top 5 most frequent conditions?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT Weather, AVG(Temp_C) AS average_temperature FROM project_1___weather_dataset GROUP BY Weather ORDER BY COUNT(*) DESC LIMIT 5",
+      "gold_sql": "SELECT Weather, AVG(Temp_C) AS avg_temp_c, COUNT(*) AS cnt FROM \"project_1___weather_dataset\" GROUP BY Weather ORDER BY cnt DESC LIMIT 5;",
+      "pred_error": null,
+      "exec_match": false,
+      "exact_match": false,
+      "token_f1": 0.839
+    },
+    {
+      "id": "w9",
+      "question": "What is monthly average temperature?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT STRFTIME('%Y-%m', Date_Time) AS month, AVG(Temp_C) AS average_temperature FROM project_1___weather_dataset GROUP BY month ORDER BY month",
+      "gold_sql": "SELECT SUBSTR(Date_Time, 1, 7) AS month, AVG(Temp_C) AS avg_temp_c FROM \"project_1___weather_dataset\" GROUP BY month ORDER BY month;",
+      "pred_error": null,
+      "exec_match": false,
+      "exact_match": false,
+      "token_f1": 0.667
+    },
+    {
+      "id": "w10",
+      "question": "How many rows have relative humidity above 90?",
+      "method": "llm",
+      "blocked": false,
+      "pred_sql": "SELECT COUNT(*) FROM project_1___weather_dataset WHERE Rel_Hum__ > 90",
+      "gold_sql": "SELECT COUNT(*) AS humid_rows FROM \"project_1___weather_dataset\" WHERE Rel_Hum__ > 90;",
+      "pred_error": null,
+      "exec_match": true,
+      "exact_match": false,
+      "token_f1": 0.778
+    }
+  ]
+}

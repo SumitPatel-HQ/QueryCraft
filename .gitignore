@@ -92,9 +92,11 @@ jspm_packages/
 *.txt
 # Ruff cache
 .ruff_cache/
+.pytest_cache
 
 firebaseconfig.ts
 
 # Firebase service account keys
 backend/privateKey.json
 backend/firebase-service-account.json
+
