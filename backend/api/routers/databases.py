@@ -8,11 +8,17 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 
-from api.schemas import DatabaseResponse
+from api.schemas import DatabaseResponse, MySQLConnectionCreate
 from database.models import Database as DatabaseModel, QueryHistory
 from database.session import get_db, set_current_user_context
 from database.manager import DatabaseConnectionManager
 from api.services.upload_handler import DatabaseUploadHandler
+from api.services.live_mysql_service import (
+    build_mysql_connection_string,
+    fetch_mysql_schema,
+    parse_mysql_connection_string,
+    test_mysql_connection,
+)
 from api.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -28,14 +34,13 @@ def _parse_mysql_connection_info(connection_string: str | None) -> dict | None:
     if parsed.scheme != "mysql":
         return None
 
-    query = parse_qs(parsed.query)
-    ssl_values = query.get("ssl", ["true"])
+    connection_info = parse_mysql_connection_string(connection_string)
     return {
-        "host": parsed.hostname or "",
-        "port": parsed.port or 3306,
-        "database": parsed.path.lstrip("/"),
-        "username": unquote(parsed.username or ""),
-        "ssl_enabled": ssl_values[0].lower() == "true",
+        "host": connection_info["host"],
+        "port": connection_info["port"],
+        "database": connection_info["database"],
+        "username": connection_info["username"],
+        "ssl_enabled": connection_info["ssl"],
     }
 
 
@@ -60,6 +65,12 @@ def _serialize_database(database: DatabaseModel) -> dict:
         )
 
     return payload
+
+
+def _slugify_database_name(display_name: str) -> str:
+    slug = display_name.lower().replace(" ", "_")
+    slug = "".join(char for char in slug if char.isalnum() or char == "_")
+    return slug or "mysql_connection"
 
 
 @router.get("", response_model=List[DatabaseResponse])
@@ -240,6 +251,66 @@ async def upload_database(
             except:
                 pass
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)[:200]}")
+
+
+@router.post("/mysql", response_model=DatabaseResponse)
+async def create_mysql_database(
+    payload: MySQLConnectionCreate,
+    user: dict = Depends(get_current_user),
+):
+    """Create a persisted live MySQL connection for the authenticated user."""
+    user_id = user.get("uid")
+    config = {
+        "host": payload.host,
+        "port": payload.port,
+        "db": payload.database,
+        "database": payload.database,
+        "user": payload.username,
+        "username": payload.username,
+        "password": payload.password,
+        "ssl": payload.ssl,
+    }
+
+    try:
+        connection_ok = await test_mysql_connection(config)
+        if not connection_ok:
+            raise HTTPException(status_code=400, detail="Unable to connect to MySQL")
+
+        schema_data = await fetch_mysql_schema(config)
+        connection_string = build_mysql_connection_string(
+            host=payload.host,
+            port=payload.port,
+            database=payload.database,
+            username=payload.username,
+            password=payload.password,
+            ssl=payload.ssl,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400, detail=f"MySQL connection failed: {str(exc)[:200]}"
+        ) from exc
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = DatabaseModel(
+            name=_slugify_database_name(payload.display_name),
+            display_name=payload.display_name,
+            description=payload.description,
+            db_type="mysql",
+            connection_string=connection_string,
+            schema_data=schema_data,
+            table_count=len(schema_data),
+            row_count=0,
+            size_mb=None,
+            is_active=True,
+            user_id=user_id,
+        )
+        db.add(database)
+        db.commit()
+        db.refresh(database)
+        return _serialize_database(database)
 
 
 @router.delete("/{database_id}")
