@@ -28,7 +28,7 @@ def test_validate_sql_rejects_delete_query() -> None:
 def test_validate_sql_rejects_stacked_queries_with_semicolon() -> None:
     from ai.sql_validator import validate_sql
 
-    is_valid, reason = validate_sql("SELECT * FROM t; DROP TABLE t", "postgresql")
+    is_valid, reason = validate_sql("SELECT * FROM t; SELECT * FROM t", "postgresql")
     assert is_valid is False
     assert "semicolon" in (reason or "").lower()
 
