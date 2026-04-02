@@ -60,10 +60,28 @@ def _extract_cte_names(sql_query: str) -> set[str]:
     if not sql_query:
         return set()
 
+    identifier_pattern = r'(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)'
     cte_pattern = re.compile(
-        r"(?i)\b(?:with(?:\s+recursive)?|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s+as\s*\("
+        rf"(?i)(?:\bwith(?:\s+recursive)?\s*|,\s*)({identifier_pattern})\s+as\s*\("
     )
-    return {match.lower() for match in cte_pattern.findall(sql_query)}
+
+    def _normalize_identifier(identifier: str) -> str:
+        ident = identifier.strip()
+        if (
+            (ident.startswith('"') and ident.endswith('"'))
+            or (ident.startswith("`") and ident.endswith("`"))
+            or (ident.startswith("[") and ident.endswith("]"))
+        ):
+            ident = ident[1:-1]
+        return ident.lower()
+
+    return {
+        normalized
+        for normalized in (
+            _normalize_identifier(match) for match in cte_pattern.findall(sql_query)
+        )
+        if normalized
+    }
 
 
 def _invalid_physical_tables(

@@ -89,7 +89,7 @@ jspm_packages/
 .github/
 .planning/
 .doc/
-
+*.txt
 # Ruff cache
 .ruff_cache/
 

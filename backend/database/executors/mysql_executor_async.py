@@ -21,7 +21,7 @@ from database.exceptions import (
 )
 
 
-_SELECT_PATTERN = re.compile(r"^\s*select\b", re.IGNORECASE)
+_READONLY_QUERY_PATTERN = re.compile(r"^\s*(?:select|with)\b", re.IGNORECASE)
 _INTROSPECTION_SQL = """
 SELECT
     TABLE_NAME AS table_name,
@@ -157,8 +157,8 @@ class MySQLExecutorAsync:
         params: list[Any] | tuple[Any, ...] | None = None,
     ) -> list[dict[str, Any]]:
         """Execute a SELECT query and return rows as dictionaries."""
-        if not _SELECT_PATTERN.match(sql):
-            raise UnsafeQueryError("Only SELECT statements are allowed")
+        if not _READONLY_QUERY_PATTERN.match(sql):
+            raise UnsafeQueryError("Only read-only SELECT/CTE statements are allowed")
 
         try:
             if self.pool is None:
