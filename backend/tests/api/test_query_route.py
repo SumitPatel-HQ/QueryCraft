@@ -134,7 +134,8 @@ def test_query_endpoint_rejects_unsafe_sql_with_http_400(monkeypatch):
     async def fake_generate_sql(_system_prompt: str, _user_prompt: str, _llm_client):
         return "DELETE FROM users", False
 
-    def fake_validate_sql(_sql: str, _dialect: str, raise_on_error: bool = False):
+    def fake_validate_sql(_sql: str, dialect: str, raise_on_error: bool = False):
+        assert dialect == "generic"
         if raise_on_error:
             raise UnsafeQueryError("Only SELECT allowed")
         return False, "Only SELECT allowed"
