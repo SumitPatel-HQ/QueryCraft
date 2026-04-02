@@ -41,14 +41,9 @@ def test_connect_creates_asyncpg_pool_with_ssl(monkeypatch):
         captured.update(kwargs)
         return fake_pool
 
-    ssl_context = object()
     monkeypatch.setattr(
         "database.executors.postgres_executor_async.asyncpg.create_pool",
         fake_create_pool,
-    )
-    monkeypatch.setattr(
-        "database.executors.postgres_executor_async.ssl_module.create_default_context",
-        lambda: ssl_context,
     )
 
     executor = PostgresExecutorAsync()
@@ -68,7 +63,7 @@ def test_connect_creates_asyncpg_pool_with_ssl(monkeypatch):
     assert executor.pool is fake_pool
     assert captured["min_size"] == 1
     assert captured["max_size"] == 10
-    assert captured["ssl"] is ssl_context
+    assert captured["ssl"] == "require"
 
 
 def test_disconnect_closes_pool():
