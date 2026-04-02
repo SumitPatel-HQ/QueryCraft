@@ -1,10 +1,12 @@
 """Database management API endpoints"""
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
-from typing import List
 from datetime import datetime, UTC
-import os
 import logging
+import os
+from typing import List
+from urllib.parse import parse_qs, unquote, urlparse
+
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 
 from api.schemas import DatabaseResponse
 from database.models import Database as DatabaseModel, QueryHistory
@@ -16,6 +18,48 @@ from api.middleware.auth import get_current_user
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
+
+
+def _parse_mysql_connection_info(connection_string: str | None) -> dict | None:
+    if not connection_string:
+        return None
+
+    parsed = urlparse(connection_string)
+    if parsed.scheme != "mysql":
+        return None
+
+    query = parse_qs(parsed.query)
+    ssl_values = query.get("ssl", ["true"])
+    return {
+        "host": parsed.hostname or "",
+        "port": parsed.port or 3306,
+        "database": parsed.path.lstrip("/"),
+        "username": unquote(parsed.username or ""),
+        "ssl_enabled": ssl_values[0].lower() == "true",
+    }
+
+
+def _serialize_database(database: DatabaseModel) -> dict:
+    payload = {
+        "id": database.id,
+        "name": database.name,
+        "display_name": database.display_name,
+        "description": database.description,
+        "db_type": database.db_type,
+        "table_count": database.table_count,
+        "row_count": database.row_count,
+        "size_mb": database.size_mb,
+        "created_at": database.created_at,
+        "last_accessed": database.last_accessed,
+        "is_active": database.is_active,
+    }
+
+    if database.db_type == "mysql":
+        payload["connection_info"] = _parse_mysql_connection_info(
+            database.connection_string
+        )
+
+    return payload
 
 
 @router.get("", response_model=List[DatabaseResponse])
@@ -34,23 +78,7 @@ async def list_databases(user: dict = Depends(get_current_user)):
             .all()
         )
 
-        # Convert to dict to avoid DetachedInstanceError
-        return [
-            {
-                "id": db_obj.id,
-                "name": db_obj.name,
-                "display_name": db_obj.display_name,
-                "description": db_obj.description,
-                "db_type": db_obj.db_type,
-                "table_count": db_obj.table_count,
-                "row_count": db_obj.row_count,
-                "size_mb": db_obj.size_mb,
-                "created_at": db_obj.created_at,
-                "last_accessed": db_obj.last_accessed,
-                "is_active": db_obj.is_active,
-            }
-            for db_obj in databases
-        ]
+        return [_serialize_database(db_obj) for db_obj in databases]
 
 
 @router.get("/{database_id}", response_model=DatabaseResponse)
@@ -74,20 +102,7 @@ async def get_database(database_id: int, user: dict = Depends(get_current_user))
         database.last_accessed = datetime.now(UTC)
         db.commit()
 
-        # Convert to dict to avoid DetachedInstanceError
-        return {
-            "id": database.id,
-            "name": database.name,
-            "display_name": database.display_name,
-            "description": database.description,
-            "db_type": database.db_type,
-            "table_count": database.table_count,
-            "row_count": database.row_count,
-            "size_mb": database.size_mb,
-            "created_at": database.created_at,
-            "last_accessed": database.last_accessed,
-            "is_active": database.is_active,
-        }
+        return _serialize_database(database)
 
 
 @router.post("/upload")
@@ -339,7 +354,9 @@ async def get_database_erd(database_id: int, user: dict = Depends(get_current_us
                     {
                         "name": col.get("name", ""),
                         "type": col.get("type", "TEXT"),
-                        "key": "PK" if col.get("primary_key") else ("FK" if col.get("foreign_key") else ""),
+                        "key": "PK"
+                        if col.get("primary_key")
+                        else ("FK" if col.get("foreign_key") else ""),
                     }
                     for col in columns
                 ],
@@ -348,10 +365,12 @@ async def get_database_erd(database_id: int, user: dict = Depends(get_current_us
 
         # Infer relationships
         from api.services import infer_relationships
+
         relationships = infer_relationships(schema_data)
 
         # Generate Mermaid ERD
         from api.services import generate_mermaid_erd
+
         mermaid_erd = generate_mermaid_erd(tables, relationships)
 
         return {
@@ -403,7 +422,9 @@ async def get_database_tables(database_id: int, user: dict = Depends(get_current
 
 
 @router.get("/{database_id}/history")
-async def get_database_history(database_id: int, user: dict = Depends(get_current_user)):
+async def get_database_history(
+    database_id: int, user: dict = Depends(get_current_user)
+):
     """Get query history for a specific database"""
     user_id = user.get("uid")
     logger.info(f"User {user_id} fetching query history for database {database_id}")

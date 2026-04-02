@@ -1,8 +1,32 @@
 """Schemas for database-related requests and responses"""
 
-from pydantic import BaseModel
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
+
+
+class DatabaseConnectionInfo(BaseModel):
+    """Safe connection details returned for live database records."""
+
+    host: str
+    port: int
+    database: str
+    username: str
+    ssl_enabled: bool
+
+
+class MySQLConnectionCreate(BaseModel):
+    """Request model for creating a live MySQL connection."""
+
+    display_name: str
+    description: Optional[str] = None
+    host: str
+    port: int = 3306
+    database: str
+    username: str
+    password: str
+    ssl: bool = True
 
 
 class DatabaseCreate(BaseModel):
@@ -26,6 +50,7 @@ class DatabaseResponse(BaseModel):
     created_at: datetime
     last_accessed: datetime
     is_active: bool
+    connection_info: Optional[DatabaseConnectionInfo] = None
 
     class Config:
         from_attributes = True
