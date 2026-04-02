@@ -12,7 +12,13 @@ import logging
 
 from api.config import settings
 from database.session import init_db
-from api.routers import databases_router, queries_router, schema_router, chat_router
+from api.routers import (
+    databases_router,
+    queries_router,
+    schema_router,
+    chat_router,
+    query_router,
+)
 
 
 @asynccontextmanager
@@ -49,6 +55,7 @@ app.include_router(databases_router)
 app.include_router(queries_router)
 app.include_router(schema_router)
 app.include_router(chat_router)
+app.include_router(query_router)
 
 
 @app.get("/")
