@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-04-02T06:50:36.971Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-04-02T07:07:44.389Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -19,8 +19,8 @@ progress:
 **Current Phase:** 04
 **Status:** Executing Phase 04
 
-**Last Completed Plan:** 04-02-PLAN.md
-**Next Plan:** 04-03-PLAN.md
+**Last Completed Plan:** 04-03-PLAN.md
+**Next Plan:** None (Phase 04 complete)
 
 ## Decisions
 
@@ -46,6 +46,8 @@ progress:
 - [Phase 04]: Added temporary ai.sql_generator and ai.sql_validator stubs to unblock ai package imports during parallel execution.
 - [Phase 04]: SQL generator uses a Protocol-based llm_client interface with generate(system_prompt, user_prompt) to keep providers swappable.
 - [Phase 04]: Validation failures can return (False, reason) or raise UnsafeQueryError via raise_on_error for strict orchestration paths.
+- [Phase 04]: Added provider adapters to bridge system/user prompt SQL generation and single-prompt summary generation without changing provider contracts.
+- [Phase 04]: Registered /api/query through compatibility router wiring so new api.routes module integrates with existing api.routers-based FastAPI composition.
 
 ## Accumulated Context
 
@@ -65,8 +67,9 @@ progress:
 - Phase 03.1 Plan 02 — Duration: 10 min; Tasks: 2; Files: 5
 - Phase 03.1 Plan 03 — Duration: 4 min; Tasks: 2; Files: 5
 - Phase 04 Plan 02 — Duration: 4 min; Tasks: 3; Files: 7
+- Phase 04 Plan 03 — Duration: 37 min; Tasks: 2; Files: 7
 
 ## Session
 
-- **Last Session:** 2026-04-02T06:50:36.959Z
-- **Stopped At:** Completed 04-01-PLAN.md
+- **Last Session:** 2026-04-02T07:07:44.382Z
+- **Stopped At:** Completed 04-03-PLAN.md

@@ -22,7 +22,7 @@
 - **NLQUERY-03**: Validate generated SQL (non-empty, SELECT/WITH only, no forbidden keywords, no stacked queries, max 4000 chars) before execution.
 - **NLQUERY-04**: Format query results as Markdown table (cap at 500 rows) with LLM-generated natural language summary and collapsible SQL display.
 - **NLQUERY-05**: Manage per-session conversation history (max 20 messages, last 6 injected into prompts, drop oldest pairs when cap hit).
-- **NLQUERY-06**: Orchestrate full pipeline via POST /query endpoint with structured error handling (400 for validation, 408 for timeout, 502 for executor failure).
+- [x] **NLQUERY-06**: Orchestrate full pipeline via POST /query endpoint with structured error handling (400 for validation, 408 for timeout, 502 for executor failure).
 
 ## Phase 03.1 — Live MySQL Sidebar Integration
 
