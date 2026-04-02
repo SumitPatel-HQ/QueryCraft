@@ -24,6 +24,18 @@ Plans:
 - [x] 03-02-PLAN.md — Async MySQL executor + module exports
 - [x] 03-03-PLAN.md — PostgreSQL SSL contract gap closure
 
+### Phase 03.1: Connect the live MySQL backend to the frontend sidebar so users can create a MySQL connection, see connected status, and view whether it is active along with connection info. (INSERTED)
+
+**Goal:** Users can create a live MySQL connection from the dashboard sidebar, immediately see whether it is connected/active, and inspect basic connection details without breaking existing database flows.
+**Requirements:** [MYSQLUI-01, MYSQLUI-02, MYSQLUI-03, MYSQLUI-04]
+**Depends on:** Phase 03
+**Plans:** 3/3 plans complete
+
+Plans:
+- [x] 03.1-01-PLAN.md — Add live MySQL connection creation contract + persistence API
+- [x] 03.1-02-PLAN.md — Route schema/query database flows through the live MySQL service
+- [x] 03.1-03-PLAN.md — Wire sidebar MySQL creation UI + connection status/info display
+
 ### Phase 04: Natural Language Query Interface
 **Goal:** Build end-to-end NL-to-SQL pipeline with multi-turn conversation, LLM-based SQL generation, validation, and formatted responses.
 **Requirements:** [NLQUERY-01, NLQUERY-02, NLQUERY-03, NLQUERY-04, NLQUERY-05, NLQUERY-06]

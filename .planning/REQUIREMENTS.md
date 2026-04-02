@@ -23,3 +23,10 @@
 - **NLQUERY-04**: Format query results as Markdown table (cap at 500 rows) with LLM-generated natural language summary and collapsible SQL display.
 - **NLQUERY-05**: Manage per-session conversation history (max 20 messages, last 6 injected into prompts, drop oldest pairs when cap hit).
 - **NLQUERY-06**: Orchestrate full pipeline via POST /query endpoint with structured error handling (400 for validation, 408 for timeout, 502 for executor failure).
+
+## Phase 03.1 — Live MySQL Sidebar Integration
+
+- [x] **MYSQLUI-01**: Add an authenticated API contract for creating a live MySQL database record from host/port/database/username/password/ssl inputs submitted by the frontend.
+- [x] **MYSQLUI-02**: Validate new MySQL connections with the Phase 03 async MySQL executor, introspect schema before persistence, and never return raw passwords in API responses.
+- [x] **MYSQLUI-03**: Show MySQL connections in the frontend sidebar with connected/active status and basic connection info (host, database, port, username, ssl state).
+- [x] **MYSQLUI-04**: Existing database schema/query/detail flows must handle persisted `db_type="mysql"` records without unsupported-database crashes.

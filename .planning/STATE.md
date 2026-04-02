@@ -3,23 +3,23 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-status: ready
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-04-02T03:32:25.111Z"
+status: planning
+stopped_at: Completed 03.1-03-PLAN.md
+last_updated: "2026-04-02T04:37:29.998Z"
 progress:
-  total_phases: 4
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 5
+  total_phases: 5
+  completed_phases: 3
+  total_plans: 11
+  completed_plans: 8
 ---
 
 # Project State
 
 **Last Updated:** 2026-04-02
 **Current Phase:** 04
-**Status:** Ready for Phase 04
+**Status:** Ready to plan
 
-**Last Completed Plan:** 03-03-PLAN.md
+**Last Completed Plan:** 03.1-03-PLAN.md
 **Next Plan:** 04-01-PLAN.md
 
 ## Decisions
@@ -38,6 +38,15 @@ progress:
 - [Phase 03]: MySQL schema introspection maps INFORMATION_SCHEMA rows into the shared table-to-columns dict consumed by the LLM pipeline.
 - [Phase 03]: PostgreSQL SSL enforcement now passes asyncpg ssl='require' explicitly instead of relying on an SSLContext-only path.
 - [Phase 03]: The PostgreSQL SSL regression test now captures asyncpg.create_pool kwargs so removing ssl='require' fails immediately.
+- [Phase 03.1]: MySQL creation reuses the existing databases table and connection_string column to preserve metadata contracts.
+- [Phase 03.1]: MySQL runtime routes rebuild executor config from stored DSNs and bypass the legacy sync manager.
+- [Phase 03.1]: The sidebar now renders live MySQL cards directly from DatabaseResponse.connection_info via authenticated API state.
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 03.1 inserted after Phase 03: Connect the live MySQL backend to the frontend sidebar so users can create a MySQL connection, see connected status, and view whether it is active along with connection info. (URGENT)
 
 ## Blockers
 
@@ -47,8 +56,11 @@ progress:
 
 - Phase 03 Plan 02 — Duration: 5 min; Tasks: 2; Files: 4
 - Phase 03 Plan 03 — Duration: 2 min; Tasks: 2; Files: 2
+- Phase 03.1 Plan 01 — Duration: 4 min; Tasks: 2; Files: 6
+- Phase 03.1 Plan 02 — Duration: 10 min; Tasks: 2; Files: 5
+- Phase 03.1 Plan 03 — Duration: 4 min; Tasks: 2; Files: 5
 
 ## Session
 
-- **Last Session:** 2026-04-02T03:32:25.101Z
-- **Stopped At:** Completed 03-03-PLAN.md
+- **Last Session:** 2026-04-02T04:37:14.677Z
+- **Stopped At:** Completed 03.1-03-PLAN.md
