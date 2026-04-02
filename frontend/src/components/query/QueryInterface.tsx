@@ -30,6 +30,11 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     preselectedDatabaseId || (databases.length === 1 ? databases[0].id : null)
   );
 
+  // Sync availableDatabases with databases prop when it changes
+  useEffect(() => {
+    setAvailableDatabases(databases);
+  }, [databases]);
+
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);

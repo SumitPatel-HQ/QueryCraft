@@ -34,7 +34,16 @@ export function useApi() {
 
   // Helper to get token for each request
   const getAuthToken = useCallback(async () => {
-    // Read current values from refs to avoid stale closure
+    // Wait for auth to be ready (handles race condition on page reload)
+    const maxWaitTime = 5000; // 5 seconds max wait
+    const checkInterval = 50; // Check every 50ms
+    let waited = 0;
+
+    while (loadingRef.current && waited < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      waited += checkInterval;
+    }
+
     if (loadingRef.current) {
       throw new Error("Authentication is still loading");
     }
