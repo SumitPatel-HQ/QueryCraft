@@ -20,7 +20,9 @@ def build_mysql_connection_string(
     return f"mysql://{quote(username)}:{quote(password)}@{host}:{port}/{database}?ssl={ssl_value}"
 
 
-def parse_mysql_connection_string(connection_string: str) -> dict[str, Any]:
+def _parse_mysql_connection_string_with_password(
+    connection_string: str,
+) -> dict[str, Any]:
     parsed = urlparse(connection_string)
     query = parse_qs(parsed.query)
     ssl_values = query.get("ssl", ["true"])
@@ -34,8 +36,19 @@ def parse_mysql_connection_string(connection_string: str) -> dict[str, Any]:
     }
 
 
+def parse_mysql_connection_string(connection_string: str) -> dict[str, Any]:
+    parsed = _parse_mysql_connection_string_with_password(connection_string)
+    return {
+        "host": parsed["host"],
+        "port": parsed["port"],
+        "database": parsed["database"],
+        "username": parsed["username"],
+        "ssl": parsed["ssl"],
+    }
+
+
 def config_from_mysql_connection_string(connection_string: str) -> dict[str, Any]:
-    parsed = parse_mysql_connection_string(connection_string)
+    parsed = _parse_mysql_connection_string_with_password(connection_string)
     return {
         "host": parsed["host"],
         "port": parsed["port"],
