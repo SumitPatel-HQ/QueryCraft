@@ -124,7 +124,7 @@ def test_query_endpoint_success_returns_formatted_json_and_pipeline_order(monkey
     ]
 
 
-def test_query_endpoint_rejects_unsafe_sql_with_http_400(monkeypatch):
+def test_query_endpoint_rejects_stacked_queries_with_http_400(monkeypatch):
     query_router = importlib.import_module("api.routes.query")
 
     monkeypatch.setattr(
@@ -132,13 +132,13 @@ def test_query_endpoint_rejects_unsafe_sql_with_http_400(monkeypatch):
     )
 
     async def fake_generate_sql(_system_prompt: str, _user_prompt: str, _llm_client):
-        return "DELETE FROM users", False
+        return "SELECT * FROM users; DROP TABLE users", False
 
     def fake_validate_sql(_sql: str, dialect: str, raise_on_error: bool = False):
         assert dialect == "generic"
         if raise_on_error:
-            raise UnsafeQueryError("Only SELECT allowed")
-        return False, "Only SELECT allowed"
+            raise UnsafeQueryError("No semicolons allowed")
+        return False, "No semicolons allowed"
 
     monkeypatch.setattr(query_router, "generate_sql", fake_generate_sql)
     monkeypatch.setattr(query_router, "validate_sql", fake_validate_sql)
@@ -147,13 +147,117 @@ def test_query_endpoint_rejects_unsafe_sql_with_http_400(monkeypatch):
         asyncio.run(
             query_router.query_endpoint(
                 query_router.QueryRequest(
-                    message="Delete users", session_id="session-unsafe"
+                    message="Malicious query", session_id="session-unsafe"
                 )
             )
         )
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == {"error": "Only SELECT allowed"}
+    assert exc_info.value.detail == {"error": "No semicolons allowed"}
+
+
+def test_query_endpoint_executes_ddl_queries_successfully(monkeypatch):
+    """Verify DDL queries (CREATE, ALTER, DROP) execute successfully through the pipeline."""
+    query_router = importlib.import_module("api.routes.query")
+
+    call_log: list[str] = []
+    executor = FakeExecutor(rows=[], call_log=call_log)
+
+    def fake_get_executor(session_id: str):
+        call_log.append("executor")
+        return executor
+
+    async def fake_generate_sql(system_prompt: str, user_prompt: str, llm_client):
+        call_log.append("generate")
+        return "CREATE TABLE test_users (id INT, name TEXT)", False
+
+    def fake_validate_sql(sql: str, dialect: str, raise_on_error: bool = False):
+        call_log.append("validate")
+        return True, None
+
+    def fake_format_response(rows, message, sql, llm_client):
+        call_log.append("format")
+        return query_router.FormattedResponse(
+            table="",
+            summary="Table created successfully",
+            sql="<details>sql</details>",
+            row_count=0,
+        )
+
+    monkeypatch.setattr(query_router, "get_executor_for_session", fake_get_executor)
+    monkeypatch.setattr(
+        query_router,
+        "conversation_manager",
+        FakeConversationManager(call_log),
+    )
+    monkeypatch.setattr(query_router, "generate_sql", fake_generate_sql)
+    monkeypatch.setattr(query_router, "validate_sql", fake_validate_sql)
+    monkeypatch.setattr(query_router, "format_response", fake_format_response)
+
+    response = asyncio.run(
+        query_router.query_endpoint(
+            query_router.QueryRequest(
+                message="Create a test_users table", session_id="session-1"
+            )
+        )
+    )
+
+    assert response["summary"] == "Table created successfully"
+    assert response["row_count"] == 0
+    assert "validate" in call_log
+    assert "execute" in call_log
+
+
+def test_query_endpoint_executes_dml_queries_successfully(monkeypatch):
+    """Verify DML queries (INSERT, UPDATE, DELETE) execute successfully through the pipeline."""
+    query_router = importlib.import_module("api.routes.query")
+
+    call_log: list[str] = []
+    executor = FakeExecutor(rows=[], call_log=call_log)
+
+    def fake_get_executor(session_id: str):
+        call_log.append("executor")
+        return executor
+
+    async def fake_generate_sql(system_prompt: str, user_prompt: str, llm_client):
+        call_log.append("generate")
+        return "INSERT INTO users (name) VALUES ('Alice')", False
+
+    def fake_validate_sql(sql: str, dialect: str, raise_on_error: bool = False):
+        call_log.append("validate")
+        return True, None
+
+    def fake_format_response(rows, message, sql, llm_client):
+        call_log.append("format")
+        return query_router.FormattedResponse(
+            table="",
+            summary="Row inserted successfully",
+            sql="<details>sql</details>",
+            row_count=1,
+        )
+
+    monkeypatch.setattr(query_router, "get_executor_for_session", fake_get_executor)
+    monkeypatch.setattr(
+        query_router,
+        "conversation_manager",
+        FakeConversationManager(call_log),
+    )
+    monkeypatch.setattr(query_router, "generate_sql", fake_generate_sql)
+    monkeypatch.setattr(query_router, "validate_sql", fake_validate_sql)
+    monkeypatch.setattr(query_router, "format_response", fake_format_response)
+
+    response = asyncio.run(
+        query_router.query_endpoint(
+            query_router.QueryRequest(
+                message="Insert a user named Alice", session_id="session-1"
+            )
+        )
+    )
+
+    assert response["summary"] == "Row inserted successfully"
+    assert response["row_count"] == 1
+    assert "validate" in call_log
+    assert "execute" in call_log
 
 
 def test_query_endpoint_maps_timeout_to_http_408(monkeypatch):
