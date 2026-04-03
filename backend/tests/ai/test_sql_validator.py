@@ -17,12 +17,70 @@ def test_validate_sql_accepts_select_query() -> None:
     assert reason is None
 
 
-def test_validate_sql_rejects_delete_query() -> None:
+def test_validate_sql_accepts_insert_query() -> None:
     from ai.sql_validator import validate_sql
 
-    is_valid, reason = validate_sql("DELETE FROM users", "postgresql")
-    assert is_valid is False
-    assert "only select" in (reason or "").lower()
+    is_valid, reason = validate_sql(
+        "INSERT INTO users (name) VALUES ('Alice')", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_update_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "UPDATE users SET name = 'Bob' WHERE id = 1", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_delete_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("DELETE FROM users WHERE id = 1", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_create_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "CREATE TABLE test_table (id INT, name TEXT)", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_alter_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "ALTER TABLE users ADD COLUMN age INT", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_drop_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("DROP TABLE test_table", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_grant_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "GRANT SELECT ON users TO readonly_user", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
 
 
 def test_validate_sql_rejects_stacked_queries_with_semicolon() -> None:
@@ -50,9 +108,9 @@ def test_validate_sql_rejects_long_sql() -> None:
     assert "4000" in (reason or "")
 
 
-def test_validate_sql_raises_unsafe_query_error_on_invalid_sql() -> None:
+def test_validate_sql_raises_unsafe_query_error_on_empty_sql() -> None:
     from ai.sql_validator import validate_sql
     from database.exceptions import UnsafeQueryError
 
     with pytest.raises(UnsafeQueryError):
-        validate_sql("UPDATE users SET email='x'", "postgresql", raise_on_error=True)
+        validate_sql("   ", "postgresql", raise_on_error=True)
