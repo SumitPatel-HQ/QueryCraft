@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from types import SimpleNamespace
 from typing import Any
 
@@ -16,11 +15,9 @@ from database.exceptions import (
     ConnectionError,
     QueryTimeoutError,
     SchemaIntrospectionError,
-    UnsafeQueryError,
 )
 
 
-_SELECT_PATTERN = re.compile(r"^\s*select\b", re.IGNORECASE)
 _INTROSPECTION_SQL = """
 SELECT
     table_name,
@@ -35,7 +32,7 @@ ORDER BY table_name, ordinal_position
 
 
 class PostgresExecutorAsync:
-    """Execute safe read-only PostgreSQL operations through an async pool."""
+    """Execute PostgreSQL operations through an async pool."""
 
     def __init__(self) -> None:
         self.pool: Any | None = None
@@ -122,17 +119,12 @@ class PostgresExecutorAsync:
         sql: str,
         params: list[Any] | tuple[Any, ...] | None = None,
     ) -> list[dict[str, Any]]:
-        """Execute a SELECT query and return rows as dictionaries."""
-        if not _SELECT_PATTERN.match(sql):
-            raise UnsafeQueryError("Only SELECT statements are allowed")
-
+        """Execute a query and return rows as dictionaries."""
         try:
             if self.pool is None:
                 await self.connect(self.config)
             async with self.pool.acquire() as connection:
                 rows = await connection.fetch(sql, *(params or ()))
-        except UnsafeQueryError:
-            raise
         except TimeoutError as exc:
             raise QueryTimeoutError("PostgreSQL query timed out", exc) from exc
         except Exception as exc:

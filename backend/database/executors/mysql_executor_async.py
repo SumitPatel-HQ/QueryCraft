@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import ssl as ssl_module
 from types import SimpleNamespace
 from typing import Any
@@ -17,11 +16,9 @@ from database.exceptions import (
     ConnectionError,
     QueryTimeoutError,
     SchemaIntrospectionError,
-    UnsafeQueryError,
 )
 
 
-_READONLY_QUERY_PATTERN = re.compile(r"^\s*(?:select|with)\b", re.IGNORECASE)
 _INTROSPECTION_SQL = """
 SELECT
     TABLE_NAME AS table_name,
@@ -35,7 +32,7 @@ ORDER BY TABLE_NAME, ORDINAL_POSITION
 
 
 class MySQLExecutorAsync:
-    """Execute safe read-only MySQL operations through an async pool."""
+    """Execute MySQL operations through an async pool."""
 
     def __init__(self) -> None:
         self.pool: Any | None = None
@@ -156,10 +153,7 @@ class MySQLExecutorAsync:
         sql: str,
         params: list[Any] | tuple[Any, ...] | None = None,
     ) -> list[dict[str, Any]]:
-        """Execute a SELECT query and return rows as dictionaries."""
-        if not _READONLY_QUERY_PATTERN.match(sql):
-            raise UnsafeQueryError("Only read-only SELECT/CTE statements are allowed")
-
+        """Execute a query and return rows as dictionaries."""
         try:
             if self.pool is None:
                 await self.connect(self.config)
@@ -167,9 +161,11 @@ class MySQLExecutorAsync:
                 async with connection.cursor() as cursor:
                     await cursor.execute(sql, params)
                     rows = await cursor.fetchall()
-                    columns = [column[0] for column in cursor.description]
-        except UnsafeQueryError:
-            raise
+                    columns = (
+                        [column[0] for column in cursor.description]
+                        if cursor.description
+                        else []
+                    )
         except TimeoutError as exc:
             raise QueryTimeoutError("MySQL query timed out", exc) from exc
         except Exception as exc:
