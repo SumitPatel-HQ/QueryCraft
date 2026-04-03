@@ -176,11 +176,95 @@ def test_execute_query_returns_list_of_dicts_for_select():
     cursor.execute.assert_awaited_once_with("SELECT id, email FROM users", [1])
 
 
-def test_execute_query_rejects_non_select_queries():
-    from database.exceptions import UnsafeQueryError
+def test_execute_insert_query():
     from database.executors.mysql_executor_async import MySQLExecutorAsync
 
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
     executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
 
-    with pytest.raises(UnsafeQueryError):
-        asyncio.run(executor.execute_query("DELETE FROM users"))
+    result = asyncio.run(
+        executor.execute_query("INSERT INTO users (name) VALUES ('Alice')")
+    )
+
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_update_query():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(
+        executor.execute_query("UPDATE users SET name = 'Bob' WHERE id = 1")
+    )
+
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_create_table_query():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(
+        executor.execute_query("CREATE TABLE test_table (id INT, name TEXT)")
+    )
+
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_alter_table_query():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("ALTER TABLE users ADD COLUMN age INT"))
+
+    assert result == []
+    cursor.execute.assert_awaited_once()
