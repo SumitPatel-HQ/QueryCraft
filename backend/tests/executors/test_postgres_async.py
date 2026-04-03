@@ -196,3 +196,102 @@ def test_execute_alter_table_query():
 
     assert result == []
     connection.fetch.assert_awaited_once()
+
+
+# Transaction Control Tests
+def test_execute_begin_transaction():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("BEGIN TRANSACTION"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_commit_transaction():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("COMMIT"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_rollback_transaction():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("ROLLBACK"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_truncate_table():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("TRUNCATE TABLE users"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_create_index():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("CREATE INDEX idx_users_email ON users(email)"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_drop_index():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("DROP INDEX idx_users_email"))
+    assert result == []
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_explain_query():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    mock_record = {"QUERY PLAN": "Seq Scan on users"}
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[mock_record])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("EXPLAIN SELECT * FROM users"))
+    assert len(result) == 1
+    assert result[0]["QUERY PLAN"] == "Seq Scan on users"
+    connection.fetch.assert_awaited_once()
+
+
+def test_execute_vacuum():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    connection = type("Conn", (), {"fetch": AsyncMock(return_value=[])})()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("VACUUM users"))
+    assert result == []
+    connection.fetch.assert_awaited_once()

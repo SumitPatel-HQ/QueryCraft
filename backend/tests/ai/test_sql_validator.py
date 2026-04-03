@@ -114,3 +114,139 @@ def test_validate_sql_raises_unsafe_query_error_on_empty_sql() -> None:
 
     with pytest.raises(UnsafeQueryError):
         validate_sql("   ", "postgresql", raise_on_error=True)
+
+
+# Transaction Control Tests
+def test_validate_sql_accepts_begin_transaction() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("BEGIN TRANSACTION", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_commit() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("COMMIT", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_rollback() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("ROLLBACK", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_savepoint() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("SAVEPOINT my_savepoint", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+# DDL Variations
+def test_validate_sql_accepts_truncate() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("TRUNCATE TABLE users", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_rename_table() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("ALTER TABLE users RENAME TO people", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_comment_on_table() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "COMMENT ON TABLE users IS 'User accounts'", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_create_index() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "CREATE INDEX idx_users_email ON users(email)", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_drop_index() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("DROP INDEX idx_users_email", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+# DCL Variations
+def test_validate_sql_accepts_revoke() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "REVOKE SELECT ON users FROM readonly_user", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_set_statement() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("SET search_path TO public", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_reset_statement() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("RESET search_path", "postgresql")
+    assert is_valid is True
+    assert reason is None
+
+
+# CTE (Common Table Expression)
+def test_validate_sql_accepts_cte_with_query() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "WITH active_users AS (SELECT * FROM users WHERE active = true) SELECT * FROM active_users",
+        "postgresql",
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+# Utility Statements
+def test_validate_sql_accepts_explain_analyze() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql(
+        "EXPLAIN ANALYZE SELECT * FROM users", "postgresql"
+    )
+    assert is_valid is True
+    assert reason is None
+
+
+def test_validate_sql_accepts_vacuum() -> None:
+    from ai.sql_validator import validate_sql
+
+    is_valid, reason = validate_sql("VACUUM users", "postgresql")
+    assert is_valid is True
+    assert reason is None

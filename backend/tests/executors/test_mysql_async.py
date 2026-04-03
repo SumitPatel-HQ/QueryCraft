@@ -262,9 +262,179 @@ def test_execute_alter_table_query():
     )()
     connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
     executor = MySQLExecutorAsync()
+
+
+# Transaction Control Tests
+def test_execute_begin_transaction():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
     executor.pool = FakePool(connection)
 
-    result = asyncio.run(executor.execute_query("ALTER TABLE users ADD COLUMN age INT"))
+    result = asyncio.run(executor.execute_query("BEGIN"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
 
+
+def test_execute_commit_transaction():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("COMMIT"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_rollback_transaction():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("ROLLBACK"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_truncate_table():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("TRUNCATE TABLE users"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_create_index():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("CREATE INDEX idx_users_email ON users(email)"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_drop_index():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("DROP INDEX idx_users_email ON users"))
+    assert result == []
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_explain_query():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(
+                return_value=[{"table": "users", "type": "ALL", "rows": 1000}]
+            ),
+            "description": (
+                ("table", "varchar"),
+                ("type", "varchar"),
+                ("rows", "int"),
+            ),
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("EXPLAIN SELECT * FROM users"))
+    assert len(result) == 1
+    assert result[0]["table"] == "users"
+    cursor.execute.assert_awaited_once()
+
+
+def test_execute_optimize_table():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    cursor = type(
+        "Cursor",
+        (),
+        {
+            "execute": AsyncMock(),
+            "fetchall": AsyncMock(return_value=[]),
+            "description": None,
+        },
+    )()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    result = asyncio.run(executor.execute_query("OPTIMIZE TABLE users"))
     assert result == []
     cursor.execute.assert_awaited_once()
