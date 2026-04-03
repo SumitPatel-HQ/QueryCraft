@@ -45,3 +45,11 @@ Plans:
 - [x] 04-01-PLAN.md — AI pipeline core (prompt builder, SQL generator, validator)
 - [x] 04-02-PLAN.md — Response formatting + conversation management
 - [x] 04-03-PLAN.md — API orchestration (POST /query endpoint)
+
+### Phase 05: Remove SQL Execution Restrictions
+**Goal:** Remove read-only SELECT/CTE restriction to allow all SQL statement types (DDL, DML, DCL, TCL) through the natural language query interface.
+**Requirements:** [SQLEXEC-01, SQLEXEC-02, SQLEXEC-03]
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 05-01-PLAN.md — Remove validation restrictions from AI validator and database executors

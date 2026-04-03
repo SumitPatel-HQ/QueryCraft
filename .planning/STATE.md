@@ -2,25 +2,25 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04
+current_phase: 05
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-04-02T07:07:44.389Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-04-03T12:13:03.229Z"
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 6
+  completed_phases: 5
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
 
-**Last Updated:** 2026-04-02
-**Current Phase:** 04
-**Status:** Executing Phase 04
+**Last Updated:** 2026-04-03
+**Current Phase:** 05
+**Status:** Phase 05 complete
 
-**Last Completed Plan:** 04-03-PLAN.md
-**Next Plan:** None (Phase 04 complete)
+**Last Completed Plan:** 05-01-PLAN.md
+**Next Plan:** None (Phase 05 complete)
 
 ## Decisions
 
@@ -48,6 +48,9 @@ progress:
 - [Phase 04]: Validation failures can return (False, reason) or raise UnsafeQueryError via raise_on_error for strict orchestration paths.
 - [Phase 04]: Added provider adapters to bridge system/user prompt SQL generation and single-prompt summary generation without changing provider contracts.
 - [Phase 04]: Registered /api/query through compatibility router wiring so new api.routes module integrates with existing api.routers-based FastAPI composition.
+- [Phase 05]: Removed application-level SQL statement filtering in favor of database-level permissions.
+- [Phase 05]: AI validator now allows all SQL statement types - DDL, DML, DCL, TCL unrestricted.
+- [Phase 05]: Executors are now neutral execution layers without statement-type policy enforcement.
 
 ## Accumulated Context
 
@@ -68,8 +71,9 @@ progress:
 - Phase 03.1 Plan 03 — Duration: 4 min; Tasks: 2; Files: 5
 - Phase 04 Plan 02 — Duration: 4 min; Tasks: 3; Files: 7
 - Phase 04 Plan 03 — Duration: 37 min; Tasks: 2; Files: 7
+- Phase 05 Plan 01 — Duration: 4 min; Tasks: 3; Files: 7
 
 ## Session
 
-- **Last Session:** 2026-04-02T07:07:44.382Z
-- **Stopped At:** Completed 04-03-PLAN.md
+- **Last Session:** 2026-04-03T12:13:03.223Z
+- **Stopped At:** Completed 05-01-PLAN.md
