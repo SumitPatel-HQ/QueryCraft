@@ -30,3 +30,9 @@
 - [x] **MYSQLUI-02**: Validate new MySQL connections with the Phase 03 async MySQL executor, introspect schema before persistence, and never return raw passwords in API responses.
 - [x] **MYSQLUI-03**: Show MySQL connections in the frontend sidebar with connected/active status and basic connection info (host, database, port, username, ssl state).
 - [x] **MYSQLUI-04**: Existing database schema/query/detail flows must handle persisted `db_type="mysql"` records without unsupported-database crashes.
+
+## Phase 05 — Remove SQL Execution Restrictions
+
+- **SQLEXEC-01**: Remove read-only SELECT/CTE validation restriction and allow DDL statements (CREATE, ALTER, DROP, TRUNCATE, RENAME, COMMENT) to execute through the query pipeline.
+- **SQLEXEC-02**: Allow DML statements (INSERT, UPDATE, DELETE, MERGE, UPSERT) and transaction control (BEGIN, COMMIT, ROLLBACK, SAVEPOINT) to execute through the query pipeline.
+- **SQLEXEC-03**: Allow administrative and utility statements (GRANT, REVOKE, SET, RESET, EXEC, CALL, DO, COPY, VACUUM, ANALYZE, EXPLAIN) to execute through both PostgreSQL and MySQL executors.
