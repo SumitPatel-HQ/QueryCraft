@@ -63,7 +63,7 @@ Generate the SQL query:"""
         """
         tables_str = ", ".join(tables_used) if tables_used else "database tables"
         
-        return f"""Explain this SQL query in simple, human-readable language:
+        return f"""You are an expert SQL Explainer. Explain this SQL query in simple, human-readable language:
 
 Question: {user_question}
 SQL Query: {sql}
