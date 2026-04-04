@@ -42,10 +42,15 @@ services:
       - querycraft-network
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCfDQwtvMlzcJ1Go3Is4O8B70hlZ7Y_o70 # Pass production keys here if needed or from .env
     container_name: querycraft-frontend
     ports:
       - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
     networks:
