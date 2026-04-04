@@ -100,3 +100,5 @@ firebaseconfig.ts
 backend/privateKey.json
 backend/firebase-service-account.json
 
+answers.md
+SecurityProblems.md

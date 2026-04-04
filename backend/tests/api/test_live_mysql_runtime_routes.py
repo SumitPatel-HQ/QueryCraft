@@ -381,3 +381,82 @@ def test_empty_schema_blocks_non_creation_queries(monkeypatch):
 
     assert exc_info.value.status_code == 400
     assert "No tables to work on" in str(exc_info.value.detail)
+
+
+def test_mysql_truncate_fk_error_returns_actionable_400(monkeypatch):
+    _install_firebase_stubs()
+
+    from api.routers import queries
+    from api.schemas import QueryRequest
+
+    database = SimpleNamespace(
+        id=13,
+        name="world",
+        display_name="World",
+        db_type="mysql",
+        file_path=None,
+        connection_string="mysql://reporter:supersecret@db.internal:3306/world?ssl=true",
+        schema_data=None,
+        last_queried=None,
+    )
+    fake_db = FakeDBSession(database)
+
+    @contextmanager
+    def fake_get_db():
+        yield fake_db
+
+    async def fake_fetch_schema(_connection_string):
+        return {
+            "city": [{"column": "id", "type": "int", "nullable": False}],
+            "country": [{"column": "code", "type": "char", "nullable": False}],
+        }
+
+    async def fake_execute_query(_connection_string, _sql, params=None):
+        _ = params
+        raise Exception(
+            "Failed to execute MySQL query: (1701, 'Cannot truncate a table referenced in a foreign key constraint (`world`.`city`, CONSTRAINT `city_ibfk_1`)')"
+        )
+
+    class FakeProcessor:
+        def __init__(self, schema_data, introspector=None):
+            assert introspector is None
+            self.schema_data = schema_data
+
+        def process_query(self, question):
+            assert question == "TRUNCATE 2 tables"
+            return {
+                "sql_query": "TRUNCATE TABLE city; TRUNCATE TABLE country;",
+                "explanation": "Truncate two tables",
+                "generation_method": "llm",
+                "confidence": 75,
+                "tables_used": ["city", "country"],
+            }
+
+    monkeypatch.setattr(queries, "get_db", fake_get_db)
+    monkeypatch.setattr(queries, "set_current_user_context", lambda db, user_id: None)
+    monkeypatch.setattr(
+        queries,
+        "fetch_mysql_schema_from_connection_string",
+        fake_fetch_schema,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        queries,
+        "execute_mysql_query_from_connection_string",
+        fake_execute_query,
+        raising=False,
+    )
+    sys.modules["core.nl_to_sql"] = SimpleNamespace(NLToSQLProcessor=FakeProcessor)
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            queries.query_database(
+                13,
+                QueryRequest(question="TRUNCATE 2 tables"),
+                {"uid": "user-123"},
+            )
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "Cannot TRUNCATE" in str(exc_info.value.detail)
+    assert "foreign key constraints" in str(exc_info.value.detail)

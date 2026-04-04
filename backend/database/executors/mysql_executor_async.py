@@ -169,7 +169,30 @@ class MySQLExecutorAsync:
         except TimeoutError as exc:
             raise QueryTimeoutError("MySQL query timed out", exc) from exc
         except Exception as exc:
-            raise ConnectionError("Failed to execute MySQL query", exc) from exc
+            exc_name = exc.__class__.__name__
+            exc_message = str(exc)
+            normalized = exc_message.lower()
+
+            # Check for permission/privilege errors
+            if exc_name in {"OperationalError", "ProgrammingError", "InternalError"}:
+                permission_markers = [
+                    "access denied",
+                    "command denied",
+                    "permission denied",
+                    "privilege",
+                    "denied",
+                ]
+                if any(marker in normalized for marker in permission_markers):
+                    from database.exceptions import UnsafeQueryError
+
+                    raise UnsafeQueryError(
+                        f"MySQL permission denied: {exc_message}", exc
+                    ) from exc
+
+            # Generic execution error with preserved detail
+            raise ConnectionError(
+                f"Failed to execute MySQL query: {exc_message}", exc
+            ) from exc
 
         return self._rows_to_dicts(rows, columns)
 

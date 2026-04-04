@@ -128,6 +128,32 @@ class PostgresExecutorAsync:
         except TimeoutError as exc:
             raise QueryTimeoutError("PostgreSQL query timed out", exc) from exc
         except Exception as exc:
-            raise ConnectionError("Failed to execute PostgreSQL query", exc) from exc
+            exc_name = exc.__class__.__name__
+            exc_message = str(exc)
+            normalized = exc_message.lower()
+
+            # Check for permission/privilege errors
+            if exc_name in {
+                "InsufficientPrivilegeError",
+                "OperationalError",
+                "ProgrammingError",
+            }:
+                permission_markers = [
+                    "permission denied",
+                    "must be owner",
+                    "insufficient privilege",
+                    "access denied",
+                ]
+                if any(marker in normalized for marker in permission_markers):
+                    from database.exceptions import UnsafeQueryError
+
+                    raise UnsafeQueryError(
+                        f"PostgreSQL permission denied: {exc_message}", exc
+                    ) from exc
+
+            # Generic execution error with preserved detail
+            raise ConnectionError(
+                f"Failed to execute PostgreSQL query: {exc_message}", exc
+            ) from exc
 
         return [dict(row) for row in rows]

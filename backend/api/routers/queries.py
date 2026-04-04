@@ -321,6 +321,23 @@ async def query_database(
                 error_str = str(exec_error)
                 logger.error(f"Query execution error: {error_str}")
 
+                # MySQL engine restriction: TRUNCATE on FK-referenced tables fails with error 1701
+                if (
+                    "1701" in error_str
+                    and "cannot truncate a table referenced in a foreign key constraint"
+                    in error_str.lower()
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "Cannot TRUNCATE because one or more target tables are "
+                            "referenced by foreign key constraints (MySQL error 1701). "
+                            "Use DELETE statements in dependency-safe order (child tables "
+                            "first), or explicitly handle foreign key constraints before "
+                            "truncation."
+                        ),
+                    )
+
                 # Better error message if table doesn't exist
                 if "no such table" in error_str.lower():
                     # Extract table name from error
