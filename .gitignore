@@ -103,3 +103,5 @@ backend/firebase-service-account.json
 answers.md
 SecurityProblems.md
 updateagents.md 
+verify_fixes.py
+test_utils_fix.py

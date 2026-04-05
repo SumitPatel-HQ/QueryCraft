@@ -92,7 +92,8 @@ export default function DatabaseSchemaPage() {
 
       {tables.map(([tableName, columns]) => {
         const typedColumns = columns as Array<{
-          name: string;
+          name?: string;
+          column?: string;
           type: string;
           primary_key?: boolean;
           nullable?: boolean;
@@ -101,9 +102,13 @@ export default function DatabaseSchemaPage() {
         }>;
 
         const filteredColumns = typedColumns.filter(
-          (col) => 
-            col.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tableName.toLowerCase().includes(searchQuery.toLowerCase())
+          (col) => {
+            const columnName = col.name || col.column || '';
+            return (
+              columnName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              tableName.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          }
         );
 
         if (filteredColumns.length === 0) return null;
@@ -155,6 +160,7 @@ export default function DatabaseSchemaPage() {
                 <tbody>
                   {filteredColumns.map((col, i) => {
                     const isEven = i % 2 === 0;
+                    const columnName = col.name || col.column || '';
                     return (
                       <tr
                         key={i}
@@ -164,7 +170,7 @@ export default function DatabaseSchemaPage() {
                       >
                         <td className="px-5 py-3 text-[13px] text-[#f0f0f0]">
                           <div className="flex items-center gap-2">
-                            {col.name}
+                            {columnName}
                             {col.primary_key && (
                               <Key size={12} className="text-[#eab308]" aria-label="Primary Key" />
                             )}

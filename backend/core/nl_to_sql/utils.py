@@ -28,6 +28,28 @@ class SQLUtils:
         "index",
     }
 
+    # System schemas/databases that should always bypass table validation
+    # These are metadata sources that exist across all database instances
+    SYSTEM_SCHEMAS = {
+        # SQLite system tables
+        "sqlite_master",
+        "sqlite_temp_master",
+        "sqlite_sequence",
+        # MySQL system databases
+        "information_schema",
+        "mysql",
+        "performance_schema",
+        "sys",
+        # PostgreSQL system schemas
+        "pg_catalog",
+        "pg_toast",
+        "pg_temp",
+        "pg_temp_1",
+        "pg_toast_temp_1",
+        # ANSI standard (used by MySQL and PostgreSQL)
+        "information_schema",
+    }
+
     @staticmethod
     def quote_identifier(identifier: str) -> str:
         escaped = identifier.replace('"', '""')
@@ -97,28 +119,53 @@ class SQLUtils:
             sql: SQL query string
 
         Returns:
-            List of unique table names found in the query
+            List of unique table names found in the query (excludes table-valued functions and system schemas)
         """
-        tables: List[str] = []
+        try:
+            sql_lower = sql.lower()
+            tables: List[str] = []
 
-        identifier_pattern = r'(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)'
+            # Regex to find table names after FROM and JOIN keywords
+            # Captures the identifier and optional parentheses to detect function calls
+            identifier_pattern = r'(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)'
+            from_pattern = rf"from\s+({identifier_pattern})(\s*\()?"
+            join_pattern = rf"join\s+({identifier_pattern})(\s*\()?"
 
-        # Find tables in FROM clause
-        from_matches = re.findall(
-            rf"(?i)FROM\s+({identifier_pattern})",
-            sql,
-        )
-        tables.extend(from_matches)
+            from_matches = re.findall(from_pattern, sql_lower)
+            join_matches = re.findall(join_pattern, sql_lower)
 
-        # Find tables in JOIN clauses
-        join_matches = re.findall(
-            rf"(?i)JOIN\s+({identifier_pattern})",
-            sql,
-        )
-        tables.extend(join_matches)
+            # Filter out function calls (identifiers followed by parentheses)
+            # This excludes pragma_table_info(), pragma_table_list(), and other table-valued functions
+            for match, has_paren in from_matches:
+                if not has_paren:  # Only include if NOT followed by parentheses
+                    tables.append(match)
 
-        normalized = [SQLUtils._strip_identifier_quotes(t).lower() for t in tables]
-        return list(set(normalized))
+            for match, has_paren in join_matches:
+                if not has_paren:  # Only include if NOT followed by parentheses
+                    tables.append(match)
+
+            # Strip quotes from identifiers
+            tables = [SQLUtils._strip_identifier_quotes(t) for t in tables]
+
+            # Filter out system schemas/databases
+            # These are metadata sources that should always be allowed
+            original_tables = tables.copy()
+            tables = [t for t in tables if t.lower() not in SQLUtils.SYSTEM_SCHEMAS]
+
+            # Log system schema filtering for diagnostics
+            filtered_out = set(original_tables) - set(tables)
+            if filtered_out:
+                logger.info(
+                    f"🔧 [utils.py] Filtered out system schemas: {filtered_out}"
+                )
+
+            # Remove duplicates and return
+            normalized = [t.lower() for t in tables]
+            return list(set(normalized))
+
+        except Exception as e:
+            logger.error(f"Error extracting tables: {str(e)}")
+            return []
 
     @staticmethod
     def calculate_pattern_confidence(question_lower: str) -> int:
