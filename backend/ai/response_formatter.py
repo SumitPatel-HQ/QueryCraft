@@ -14,6 +14,9 @@ class FormattedResponse:
     summary: str
     sql: str
     row_count: int
+    query_items: list[dict[str, Any]] | None = None
+    coverage_report: dict[str, Any] | None = None
+    multi_query_mode: bool = False
 
 
 def _to_markdown_table(rows: list[dict[str, Any]]) -> str:

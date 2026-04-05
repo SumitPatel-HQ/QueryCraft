@@ -11,23 +11,41 @@ FORBIDDEN_KEYWORDS = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE",
 
 
 def _format_schema(schema_dict: dict[str, list[dict[str, Any]]]) -> str:
-    """Render schema metadata as compact one-line table definitions."""
+    """Render schema metadata as compact one-line table definitions with relationships."""
     if not schema_dict:
         return "(no schema available)"
 
     lines: list[str] = []
+    relationships: list[str] = []
+
     for table_name in sorted(schema_dict.keys()):
         columns = schema_dict.get(table_name, [])
         formatted_columns: list[str] = []
 
         for column in columns:
-            column_name = str(column.get("column", "unknown"))
+            # Support both 'column' and 'name' keys for backward compatibility
+            column_name = str(column.get("column") or column.get("name", "unknown"))
             column_type = str(column.get("type", "unknown"))
             formatted_columns.append(f"{column_name}:{column_type}")
 
+            # Extract foreign key relationships if present
+            fk_info = column.get("foreign_key")
+            if fk_info:
+                ref_table = fk_info.get("referenced_table", "unknown")
+                ref_column = fk_info.get("referenced_column", "unknown")
+                relationships.append(
+                    f"  {table_name}.{column_name} -> {ref_table}.{ref_column}"
+                )
+
         lines.append(f"{table_name}({', '.join(formatted_columns)})")
 
-    return "\n".join(lines)
+    schema_text = "\n".join(lines)
+
+    # Add relationships section if any exist
+    if relationships:
+        schema_text += "\n\nRELATIONSHIPS:\n" + "\n".join(relationships)
+
+    return schema_text
 
 
 def _format_history(conversation_history: list[dict[str, str]]) -> str:
@@ -43,7 +61,7 @@ def _format_history(conversation_history: list[dict[str, str]]) -> str:
 
 
 def _get_metadata_examples(dialect: str) -> str:
-    """Return dialect-specific examples for metadata queries."""
+    """Return dialect-specific examples for metadata queries including relationships."""
     dialect_lower = dialect.lower()
 
     if dialect_lower == "mysql":
@@ -59,6 +77,12 @@ Answer: SELECT table_name FROM information_schema.tables WHERE table_schema = DA
 
 Question: "Show me the structure of the users table"
 Answer: SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' ORDER BY ordinal_position
+
+Question: "What are the relationships in this database?" OR "Show me foreign keys"
+Answer: SELECT kcu.table_name, kcu.column_name, kcu.referenced_table_name, kcu.referenced_column_name, kcu.constraint_name FROM information_schema.key_column_usage kcu WHERE kcu.table_schema = DATABASE() AND kcu.referenced_table_name IS NOT NULL ORDER BY kcu.table_name
+
+Question: "How does the orders table relate to other tables?"
+Answer: SELECT kcu.table_name, kcu.column_name, kcu.referenced_table_name, kcu.referenced_column_name FROM information_schema.key_column_usage kcu WHERE kcu.table_schema = DATABASE() AND (kcu.table_name = 'orders' OR kcu.referenced_table_name = 'orders') AND kcu.referenced_table_name IS NOT NULL
 """
     elif dialect_lower == "postgresql":
         return """
@@ -73,6 +97,12 @@ Answer: SELECT table_name FROM information_schema.tables WHERE table_schema = 'p
 
 Question: "Show me the structure of the users table"
 Answer: SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' ORDER BY ordinal_position
+
+Question: "What are the relationships in this database?" OR "Show me foreign keys"
+Answer: SELECT tc.table_name, kcu.column_name, ccu.table_name AS referenced_table, ccu.column_name AS referenced_column, tc.constraint_name FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+
+Question: "How does the orders table relate to other tables?"
+Answer: SELECT tc.table_name, kcu.column_name, ccu.table_name AS referenced_table, ccu.column_name AS referenced_column FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name WHERE tc.constraint_type = 'FOREIGN KEY' AND (tc.table_name = 'orders' OR ccu.table_name = 'orders')
 """
     elif dialect_lower == "sqlite":
         return """
@@ -87,6 +117,12 @@ Answer: SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name
 
 Question: "Show me the structure of the users table"
 Answer: SELECT name as column_name, type as data_type, "notnull" as is_nullable FROM pragma_table_info('users') ORDER BY cid
+
+Question: "What are the relationships in this database?" OR "Show me foreign keys"
+Answer: SELECT m.name as table_name, f."from" as column_name, f."table" as referenced_table, f."to" as referenced_column FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table'
+
+Question: "How does the orders table relate to other tables?"
+Answer: SELECT f."from" as column_name, f."table" as referenced_table, f."to" as referenced_column FROM pragma_foreign_key_list('orders')
 """
     else:
         # Generic fallback
@@ -99,6 +135,9 @@ Answer: SELECT table_name, column_name, data_type FROM information_schema.column
 
 Question: "What tables exist?"
 Answer: SELECT table_name FROM information_schema.tables ORDER BY table_name
+
+Question: "What are the relationships in this database?"
+Answer: SELECT table_name, column_name, referenced_table_name, referenced_column_name FROM information_schema.key_column_usage WHERE referenced_table_name IS NOT NULL
 """
 
 
@@ -107,12 +146,36 @@ def build_prompt(
     conversation_history: list[dict[str, str]],
     user_message: str,
     dialect: str,
+    intent_plan: Any | None = None,
+    multi_query_mode: bool = False,
 ) -> tuple[str, str]:
     """Build system and user prompts for dialect-aware SQL generation."""
     schema_block = _format_schema(schema_dict)
     history_block = _format_history(conversation_history)
     forbidden = ", ".join(FORBIDDEN_KEYWORDS)
     metadata_examples = _get_metadata_examples(dialect)
+    intent_summary = ""
+    multi_query_instructions = ""
+
+    if intent_plan and getattr(intent_plan, "intents", None):
+        summary_lines = [
+            f"{index}. {intent.intent_type.value}: {intent.text}"
+            for index, intent in enumerate(intent_plan.intents, start=1)
+        ]
+        intent_summary = (
+            "\nTask intents to satisfy:\n" + "\n".join(summary_lines) + "\n"
+        )
+
+    if multi_query_mode and intent_plan and getattr(intent_plan, "is_compound", False):
+        multi_query_instructions = (
+            "\nMULTI-QUERY OUTPUT FORMAT:\n"
+            "- Do NOT omit any user-requested intent.\n"
+            "- Generate exactly one SQL statement per intent.\n"
+            "- Output format is strict:\n"
+            "INTENT: [intent_label]\n"
+            "SQL: [sql_query]\n"
+            "EXPLANATION: [brief explanation]\n"
+        )
 
     # Log that metadata examples are being added (for deployment verification)
     logger.info(f"🔧 Building prompt with metadata examples for dialect: {dialect}")
@@ -129,6 +192,18 @@ def build_prompt(
         f"- Forbidden keywords: {forbidden}.\n"
         "- Use table aliases for multi-table queries.\n"
         "- Use COALESCE for NULL handling where needed.\n"
+        "\n"
+        "COMPOUND INTENT HANDLING:\n"
+        "- If the user asks for BOTH tables AND relationships (or any compound request), "
+        "you MUST address ALL parts of the question.\n"
+        "- DO NOT collapse compound questions into single-intent answers.\n"
+        "- When relationship metadata is available (see RELATIONSHIPS section in schema), "
+        "use it to answer relationship questions.\n"
+        "- If relationships are explicitly requested but not available in schema, "
+        "query information_schema or system tables for foreign key metadata.\n"
+        f"{intent_summary}"
+        f"{multi_query_instructions}"
+        "\n"
         f"{metadata_examples}\n"
         "Schema:\n"
         f"{schema_block}"

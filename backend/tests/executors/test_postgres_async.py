@@ -93,7 +93,7 @@ def test_test_connection_returns_true(monkeypatch):
 def test_introspect_schema_returns_unified_dict():
     from database.executors.postgres_executor_async import PostgresExecutorAsync
 
-    rows = [
+    column_rows = [
         {
             "table_name": "users",
             "column_name": "id",
@@ -107,7 +107,11 @@ def test_introspect_schema_returns_unified_dict():
             "is_nullable": "YES",
         },
     ]
-    connection = type("Conn", (), {"fetch": AsyncMock(return_value=rows)})()
+    connection = type(
+        "Conn",
+        (),
+        {"fetch": AsyncMock(side_effect=[column_rows, []])},
+    )()
     executor = PostgresExecutorAsync()
     executor.pool = FakePool(connection)
 
@@ -119,6 +123,57 @@ def test_introspect_schema_returns_unified_dict():
             {"column": "email", "type": "character varying", "nullable": True},
         ]
     }
+
+
+def test_introspect_schema_includes_foreign_key_metadata():
+    from database.executors.postgres_executor_async import PostgresExecutorAsync
+
+    column_rows = [
+        {
+            "table_name": "users",
+            "column_name": "id",
+            "data_type": "integer",
+            "is_nullable": "NO",
+        },
+        {
+            "table_name": "orders",
+            "column_name": "user_id",
+            "data_type": "integer",
+            "is_nullable": "NO",
+        },
+    ]
+    fk_rows = [
+        {
+            "table_name": "orders",
+            "column_name": "user_id",
+            "referenced_table": "users",
+            "referenced_column": "id",
+            "constraint_name": "fk_orders_users",
+        }
+    ]
+    connection = type(
+        "Conn",
+        (),
+        {"fetch": AsyncMock(side_effect=[column_rows, fk_rows])},
+    )()
+    executor = PostgresExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    schema = asyncio.run(executor.introspect_schema())
+
+    assert schema["users"] == [{"column": "id", "type": "integer", "nullable": False}]
+    assert schema["orders"] == [
+        {
+            "column": "user_id",
+            "type": "integer",
+            "nullable": False,
+            "foreign_key": {
+                "referenced_table": "users",
+                "referenced_column": "id",
+                "constraint_name": "fk_orders_users",
+            },
+        }
+    ]
 
 
 def test_execute_query_returns_list_of_dicts_for_select():
@@ -254,7 +309,9 @@ def test_execute_create_index():
     executor = PostgresExecutorAsync()
     executor.pool = FakePool(connection)
 
-    result = asyncio.run(executor.execute_query("CREATE INDEX idx_users_email ON users(email)"))
+    result = asyncio.run(
+        executor.execute_query("CREATE INDEX idx_users_email ON users(email)")
+    )
     assert result == []
     connection.fetch.assert_awaited_once()
 

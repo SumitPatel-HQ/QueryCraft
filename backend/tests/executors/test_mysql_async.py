@@ -111,16 +111,17 @@ def test_test_connection_returns_true():
 def test_introspect_schema_returns_unified_dict():
     from database.executors.mysql_executor_async import MySQLExecutorAsync
 
-    rows = [
+    column_rows = [
         ("users", "id", "int", "NO"),
         ("users", "email", "varchar", "YES"),
     ]
+    fk_rows = []
     cursor = type(
         "Cursor",
         (),
         {
             "execute": AsyncMock(),
-            "fetchall": AsyncMock(return_value=rows),
+            "fetchall": AsyncMock(side_effect=[column_rows, fk_rows]),
             "description": (
                 ("table_name",),
                 ("column_name",),
@@ -142,7 +143,68 @@ def test_introspect_schema_returns_unified_dict():
         ]
     }
     executed_sql = cursor.execute.await_args.args[0]
-    assert "TABLE_SCHEMA = DATABASE()" in executed_sql
+    assert "REFERENCED_TABLE_NAME IS NOT NULL" in executed_sql
+
+
+def test_introspect_schema_includes_foreign_key_metadata():
+    from database.executors.mysql_executor_async import MySQLExecutorAsync
+
+    column_rows = [
+        ("users", "id", "int", "NO"),
+        ("orders", "user_id", "int", "NO"),
+    ]
+    fk_rows = [
+        ("orders", "user_id", "users", "id", "fk_orders_users"),
+    ]
+
+    class Cursor:
+        def __init__(self):
+            self.execute = AsyncMock()
+            self.fetchall = AsyncMock(side_effect=[column_rows, fk_rows])
+            self._descriptions = [
+                (
+                    ("table_name",),
+                    ("column_name",),
+                    ("data_type",),
+                    ("is_nullable",),
+                ),
+                (
+                    ("table_name",),
+                    ("column_name",),
+                    ("referenced_table",),
+                    ("referenced_column",),
+                    ("constraint_name",),
+                ),
+            ]
+            self._description_index = 0
+
+        @property
+        def description(self):
+            index = min(self._description_index, len(self._descriptions) - 1)
+            value = self._descriptions[index]
+            self._description_index += 1
+            return value
+
+    cursor = Cursor()
+    connection = type("Conn", (), {"cursor": lambda self=None: FakeAcquire(cursor)})()
+    executor = MySQLExecutorAsync()
+    executor.pool = FakePool(connection)
+
+    schema = asyncio.run(executor.introspect_schema())
+
+    assert schema["users"] == [{"column": "id", "type": "int", "nullable": False}]
+    assert schema["orders"] == [
+        {
+            "column": "user_id",
+            "type": "int",
+            "nullable": False,
+            "foreign_key": {
+                "referenced_table": "users",
+                "referenced_column": "id",
+                "constraint_name": "fk_orders_users",
+            },
+        }
+    ]
 
 
 def test_execute_query_returns_list_of_dicts_for_select():
@@ -365,7 +427,9 @@ def test_execute_create_index():
     executor = MySQLExecutorAsync()
     executor.pool = FakePool(connection)
 
-    result = asyncio.run(executor.execute_query("CREATE INDEX idx_users_email ON users(email)"))
+    result = asyncio.run(
+        executor.execute_query("CREATE INDEX idx_users_email ON users(email)")
+    )
     assert result == []
     cursor.execute.assert_awaited_once()
 

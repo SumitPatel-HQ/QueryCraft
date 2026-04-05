@@ -85,3 +85,47 @@ def test_generate_sql_retries_when_extracted_sql_is_unsafe() -> None:
     assert sql == "SELECT id FROM users"
     assert was_refined is True
     assert len(client.calls) == 2
+
+
+def test_parse_intent_blocks_extracts_multi_query_output() -> None:
+    from ai.sql_generator import parse_intent_blocks
+
+    response = """
+INTENT: table_inventory
+SQL: SELECT table_name FROM information_schema.tables
+EXPLANATION: list tables
+
+INTENT: relationship_inventory
+SQL: SELECT table_name, column_name FROM information_schema.key_column_usage
+EXPLANATION: list foreign keys
+"""
+
+    items = parse_intent_blocks(response)
+
+    assert len(items) == 2
+    assert items[0]["intent_label"] == "table_inventory"
+    assert items[1]["intent_label"] == "relationship_inventory"
+
+
+def test_generate_sql_items_returns_valid_blocks() -> None:
+    from ai.sql_generator import generate_sql_items
+
+    client = StubLLMClient(
+        [
+            """
+INTENT: table_inventory
+SQL: SELECT table_name FROM information_schema.tables
+EXPLANATION: list tables
+
+INTENT: relationship_inventory
+SQL: SELECT table_name, column_name FROM information_schema.key_column_usage
+EXPLANATION: list foreign keys
+"""
+        ]
+    )
+
+    items, was_refined = generate_sql_items("sys", "user", client)
+
+    assert was_refined is False
+    assert len(items) == 2
+    assert items[0]["sql_query"].lower().startswith("select")

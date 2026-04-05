@@ -4,20 +4,25 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import inspect
+import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ai import build_prompt, generate_sql, validate_sql
+from ai import build_prompt, generate_sql, generate_sql_items, validate_sql
 from ai.conversation_manager import ConversationManager
 from ai.response_formatter import FormattedResponse, format_response
 from core.llm.provider_factory import get_llm_provider
+from core.nl_to_sql.coverage_validator import validate_intent_coverage
+from core.nl_to_sql.intent_decomposer import decompose_question
 from database.exceptions import ConnectionError, QueryTimeoutError, UnsafeQueryError
 
 
 router = APIRouter()
 conversation_manager = ConversationManager()
+logger = logging.getLogger(__name__)
 
 
 class QueryRequest(BaseModel):
@@ -116,6 +121,7 @@ async def query_endpoint(request: QueryRequest) -> dict[str, Any]:
 
         conversation_manager.add_message(request.session_id, "user", request.message)
         history = conversation_manager.get_history(request.session_id, n=6)
+        intent_plan = decompose_question(request.message, schema)
 
         dialect = _dialect_from_executor(executor)
         system_prompt, user_prompt = build_prompt(
@@ -123,24 +129,82 @@ async def query_endpoint(request: QueryRequest) -> dict[str, Any]:
             history,
             request.message,
             dialect,
+            intent_plan=intent_plan,
+            multi_query_mode=intent_plan.is_compound,
         )
 
         provider = get_llm_provider()
         sql_client = _SQLGenerationClient(provider)
-        generated_sql, _ = await _maybe_await(
-            generate_sql(system_prompt, user_prompt, sql_client)
+        query_items: list[dict[str, Any]] = []
+
+        if intent_plan.is_compound:
+            generated_items, _ = await _maybe_await(
+                generate_sql_items(system_prompt, user_prompt, sql_client)
+            )
+            for generated_item in generated_items:
+                sql_query = generated_item["sql_query"]
+                validate_sql(sql_query, dialect=dialect, raise_on_error=True)
+                rows = await executor.execute_query(sql_query)
+                query_items.append(
+                    {
+                        "intent_label": generated_item["intent_label"],
+                        "sql_query": sql_query,
+                        "explanation": generated_item.get("explanation", ""),
+                        "tables_used": [],
+                        "status": "success",
+                        "error_message": None,
+                        "result_rows": rows,
+                        "confidence": 100,
+                    }
+                )
+        else:
+            generated_sql, _ = await _maybe_await(
+                generate_sql(system_prompt, user_prompt, sql_client)
+            )
+            validate_sql(generated_sql, dialect=dialect, raise_on_error=True)
+            rows = await executor.execute_query(generated_sql)
+            query_items.append(
+                {
+                    "intent_label": intent_plan.intents[0].intent_type.value,
+                    "sql_query": generated_sql,
+                    "explanation": "",
+                    "tables_used": [],
+                    "status": "success",
+                    "error_message": None,
+                    "result_rows": rows,
+                    "confidence": 100,
+                }
+            )
+
+        first_success = next(
+            (item for item in query_items if item["status"] == "success"), None
         )
-
-        validate_sql(generated_sql, dialect=dialect, raise_on_error=True)
-
-        rows = await executor.execute_query(generated_sql)
+        primary_sql = first_success["sql_query"] if first_success else ""
+        primary_rows = first_success["result_rows"] if first_success else []
+        coverage_report = validate_intent_coverage(intent_plan, query_items).to_dict()
+        logger.info(
+            json.dumps(
+                {
+                    "event": "multi_intent_query",
+                    "session_id": request.session_id,
+                    "detected_intents": coverage_report["detected_intents"],
+                    "generated_intents": len(query_items),
+                    "missing_intents": coverage_report["missing_intents"],
+                    "retry_count": coverage_report["retry_count"],
+                    "fallback_used": coverage_report["fallback_used"],
+                }
+            )
+        )
 
         formatted = format_response(
-            rows,
+            primary_rows,
             request.message,
-            generated_sql,
+            primary_sql,
             _SummaryClient(provider),
         )
+        formatted.query_items = query_items
+        formatted.coverage_report = coverage_report
+        formatted.multi_query_mode = intent_plan.is_compound
 
         conversation_manager.add_message(
             request.session_id,
