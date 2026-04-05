@@ -30,7 +30,6 @@ class Database(Base):
     __table_args__ = (
         Index("ix_databases_last_accessed", "last_accessed"),
         Index("ix_databases_is_active", "is_active"),
-        Index("ix_databases_user_id", "user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -72,7 +71,6 @@ class QueryHistory(Base):
     __tablename__ = "query_history"
     __table_args__ = (
         Index("ix_query_history_db_created", "database_id", "created_at"),
-        Index("ix_query_history_user_id", "user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
