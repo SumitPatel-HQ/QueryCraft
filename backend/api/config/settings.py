@@ -16,7 +16,7 @@ class Settings:
     APP_VERSION: str = "1.0.0"
 
     # CORS Configuration
-    CORS_ORIGINS: list = ["http://localhost:3000"]
+    CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
     # Firebase authentication
     FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "")

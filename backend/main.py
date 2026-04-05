@@ -1,7 +1,6 @@
 """
 QueryCraft API - Main Application Entry Point
-
-Optimized and refactored FastAPI application with modular architecture.
+Production-ready FastAPI setup for Render deployment
 """
 
 from contextlib import asynccontextmanager
@@ -20,20 +19,28 @@ from api.routers import (
     query_router,
 )
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown events"""
-    init_db()
-    logger.info("✅ Database initialized")
-    yield
-
-
-# Configure logging
+# -----------------------------
+# Logging
+# -----------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI application
+# -----------------------------
+# Lifespan (Startup / Shutdown)
+# -----------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        init_db()  # make sure this uses checkfirst=True internally
+        logger.info("✅ Database initialized")
+    except Exception as e:
+        logger.error(f"❌ Database init failed: {e}")
+    yield
+
+
+# -----------------------------
+# FastAPI App
+# -----------------------------
 app = FastAPI(
     title=settings.APP_TITLE,
     description=settings.APP_DESCRIPTION,
@@ -41,32 +48,40 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS for frontend integration
+# -----------------------------
+# CORS
+# -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS,  # set your Vercel domain here
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers
+# -----------------------------
+# Routers
+# -----------------------------
 app.include_router(databases_router)
 app.include_router(queries_router)
 app.include_router(schema_router)
 app.include_router(chat_router)
 app.include_router(query_router)
 
-
+# -----------------------------
+# Routes
+# -----------------------------
 @app.get("/")
 async def root():
-    """Root endpoint - redirect to API docs"""
-    return {"message": "QueryCraft API", "docs": "/docs", "health": "/health"}
+    return {
+        "message": "QueryCraft API",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "ok",
         "version": settings.APP_VERSION,
@@ -74,7 +89,11 @@ async def health_check():
     }
 
 
+# -----------------------------
+# Local Development Only
+# -----------------------------
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))  # IMPORTANT FIX
+    uvicorn.run(app, host="0.0.0.0", port=port)
