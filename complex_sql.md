@@ -3,7 +3,7 @@
 ---
 
 ## 🎬 Sakila Database
-
+```
 ### 1. Top 5 Actors by Total Film Revenue (JOIN + GROUP BY + Subquery)
 
 
@@ -22,12 +22,13 @@
 
 ### 5. Customers with Above-Average Spending Per City (HAVING + Nested AVG)
 
-
+```
 
 ---
 
-## 🌍 World Database
 
+## 🌍 World Database
+```
 ### 1. Countries with Life Expectancy Above Their Continent Average (CTE + AVG Window)
 
 
@@ -45,13 +46,13 @@
 
 
 ### 5. Regions with Most Official Languages and Population Coverage (GROUP BY + HAVING + COUNT)
-
+```
 
 
 ---
 
 ## 🚗 ClassicModels Database
-
+```
 ### 1. Sales Rep Performance: Revenue vs Target with Rank (CTE + Window Function)
 
 
@@ -69,13 +70,13 @@
 
 
 ### 5. Product Line Revenue Share with Percentage (CTE + RATIO_TO_REPORT Simulation)
-
+```
 
 
 ---
 
 ## 🧑‍💼 Employees Database
-
+```
 ### 1. Top 5 Highest Paid Employees Per Department (CTE + DENSE_RANK)
 
 
@@ -94,4 +95,4 @@
 
 ### 5. Gender Pay Gap Per Department (CASE + AVG + Pivot Simulation)
 
-
+```
