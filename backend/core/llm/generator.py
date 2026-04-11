@@ -4,6 +4,7 @@ Orchestrates prompt generation, API calls, and validation
 """
 
 import logging
+import re
 from typing import Dict, Any, Optional
 
 from .config import LLMConfig
@@ -208,6 +209,40 @@ class LLMSQLGenerator:
                 "error": str(e),
             }
 
+    @staticmethod
+    def _clean_explanation(text: str) -> str:
+        """Strip markdown and verbose structured sections from LLM explanation text."""
+        if not text:
+            return ""
+
+        # Remove markdown bold/italic markers
+        cleaned = re.sub(r"\*{1,2}(.*?)\*{1,2}", r"\1", text)
+
+        # Remove markdown headers (# ## ###)
+        cleaned = re.sub(r"^#{1,6}\s*", "", cleaned, flags=re.MULTILINE)
+
+        # Remove bullet points (- or * at line start)
+        cleaned = re.sub(r"^[\-\*]\s*", "", cleaned, flags=re.MULTILINE)
+
+        # Remove structured section patterns that LLMs sometimes add
+        # e.g. "**Understanding This Query:**", "**What you asked:**", etc.
+        section_pattern = re.compile(
+            r"(?:Understanding This Query|What you asked|Tables accessed"
+            r"|What the SQL does|Results|Why trust this|Why this query)[^\n]*",
+            re.IGNORECASE,
+        )
+        cleaned = section_pattern.sub("", cleaned)
+
+        # Collapse multiple whitespace/newlines into a single space
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+        # If the result is empty after cleaning, return the first sentence of the original
+        if not cleaned:
+            first_sentence = re.split(r"[.!?]", text.strip(), maxsplit=1)[0]
+            cleaned = (first_sentence + ".").strip() if first_sentence else text.strip()
+
+        return cleaned
+
     def generate_query_explanation(
         self, natural_language_query: str, sql_query: str, tables_used: list
     ) -> Dict[str, Any]:
@@ -232,15 +267,22 @@ class LLMSQLGenerator:
                 natural_language_query, sql_query, tables_used
             )
 
-            # Call configured provider API
-            response = self.provider.generate(prompt)
+            # Call provider API with failover protection (same as SQL generation)
+            response = self._generate_with_failover(prompt)
 
             if not response["success"]:
                 # Use fallback explanation if API call fails
                 fallback = self.prompts.get_fallback_explanation(sql_query, tables_used)
                 return {"explanation": fallback, "error": response["error"]}
 
-            explanation = response["text"].strip()
+            explanation_text = response.get("text")
+            if not explanation_text:
+                # Use fallback if response text is empty/None despite success
+                fallback = self.prompts.get_fallback_explanation(sql_query, tables_used)
+                logger.warning("Explanation API returned empty text, using fallback")
+                return {"explanation": fallback, "error": None}
+
+            explanation = self._clean_explanation(explanation_text)
             logger.info("✅ Explanation generated successfully")
 
             return {"explanation": explanation, "error": None}

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 import time
 import logging
 import hashlib
+import json
 import re
 from datetime import datetime, UTC
 
@@ -17,6 +18,8 @@ from api.services.live_mysql_service import (
     fetch_mysql_schema_from_connection_string,
 )
 from api.middleware.auth import get_current_user
+from core.nl_to_sql.coverage_validator import validate_intent_coverage
+from core.nl_to_sql.intent_decomposer import decompose_question
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -260,10 +263,25 @@ async def query_database(
             # Create NL processor for this database
             from core.nl_to_sql import NLToSQLProcessor
 
-            db_processor = NLToSQLProcessor(schema_data, introspector=db_introspector)
+            try:
+                db_processor = NLToSQLProcessor(
+                    schema_data,
+                    introspector=db_introspector,
+                    db_type=database.db_type,
+                )
+            except TypeError:
+                db_processor = NLToSQLProcessor(
+                    schema_data,
+                    introspector=db_introspector,
+                )
+
+            intent_plan = decompose_question(request.question, schema_data)
 
             # Process query
-            query_result = db_processor.process_query(request.question)
+            if intent_plan.is_compound:
+                query_result = db_processor.process_intent_plan(intent_plan)
+            else:
+                query_result = db_processor.process_query(request.question)
 
             if query_result.get("blocked"):
                 raise HTTPException(status_code=400, detail=query_result.get("error"))
@@ -273,6 +291,9 @@ async def query_database(
             generation_method = query_result.get("generation_method", "fallback")
             base_confidence = query_result.get("confidence", 50)
             tables_used = query_result.get("tables_used", [])
+            query_items = query_result.get("query_items")
+            coverage_report = query_result.get("coverage_report")
+            multi_query_mode = query_result.get("multi_query_mode", False)
 
             # Validate generated SQL uses tables from THIS database
             logger.info(f"🔍 Generated SQL uses tables: {tables_used}")
@@ -299,7 +320,59 @@ async def query_database(
                     f"Executing query on database: {database.file_path or database.connection_string}"
                 )
                 logger.info(f"SQL Query: {sql_query}")
-                if database.db_type == "mysql":
+
+                if query_items:
+                    first_success_item = None
+                    for item in query_items:
+                        item_sql = item.get("sql_query")
+                        if not item_sql:
+                            continue
+                        try:
+                            if database.db_type == "mysql":
+                                item_results = (
+                                    await execute_mysql_query_from_connection_string(
+                                        database.connection_string,
+                                        item_sql,
+                                    )
+                                )
+                                item_columns = (
+                                    list(item_results[0].keys()) if item_results else []
+                                )
+                            else:
+                                item_results, item_columns = (
+                                    DatabaseConnectionManager.execute_query(
+                                        database.db_type,
+                                        database.file_path
+                                        or database.connection_string,
+                                        item_sql,
+                                    )
+                                )
+                            item["result_rows"] = item_results
+                            item["columns"] = item_columns
+                            item["status"] = "success"
+                            if first_success_item is None:
+                                first_success_item = item
+                        except Exception as item_error:
+                            item["status"] = "failed"
+                            item["error_message"] = str(item_error)
+                            item["result_rows"] = []
+                            item["columns"] = []
+
+                    if first_success_item is None:
+                        raise HTTPException(
+                            status_code=400, detail="All intent queries failed"
+                        )
+
+                    results = first_success_item.get("result_rows", [])
+                    columns = first_success_item.get("columns", [])
+                    sql_query = first_success_item.get("sql_query", sql_query)
+                    item_explanation = first_success_item.get("explanation", "")
+                    explanation = item_explanation if item_explanation else explanation
+                    tables_used = first_success_item.get("tables_used", tables_used)
+                    coverage_report = validate_intent_coverage(
+                        intent_plan, query_items
+                    ).to_dict()
+                elif database.db_type == "mysql":
                     results = await execute_mysql_query_from_connection_string(
                         database.connection_string,
                         sql_query,
@@ -312,10 +385,32 @@ async def query_database(
                         sql_query,
                     )
 
-                # Log result count
                 logger.info(
                     f"✅ Query executed successfully. Returned {len(results)} rows."
                 )
+                if multi_query_mode:
+                    logger.info(
+                        json.dumps(
+                            {
+                                "event": "multi_intent_query",
+                                "user_id": user_id,
+                                "database_id": database_id,
+                                "detected_intents": coverage_report["detected_intents"]
+                                if coverage_report
+                                else [],
+                                "generated_intents": len(query_items or []),
+                                "missing_intents": coverage_report["missing_intents"]
+                                if coverage_report
+                                else [],
+                                "retry_count": coverage_report["retry_count"]
+                                if coverage_report
+                                else 0,
+                                "fallback_used": coverage_report["fallback_used"]
+                                if coverage_report
+                                else False,
+                            }
+                        )
+                    )
 
             except Exception as exec_error:
                 error_str = str(exec_error)
@@ -361,7 +456,9 @@ async def query_database(
                     )
 
             execution_time_ms = int((time.time() - start_time) * 1000)
-            confidence = min(95, max(85, base_confidence + 35))
+            # Use the actual confidence score from LLM/pattern matching (already 0-100)
+            # Only clamp to valid range, don't artificially boost
+            confidence = max(0, min(100, base_confidence))
             complexity = determine_query_complexity(sql_query)
             why_explanation = generate_query_explanation(
                 request.question, sql_query, tables_used, results
@@ -380,6 +477,9 @@ async def query_database(
                 "execution_time_ms": execution_time_ms,
                 "query_complexity": complexity,
                 "why_this_query": why_explanation,
+                "query_items": query_items,
+                "coverage_report": coverage_report,
+                "multi_query_mode": multi_query_mode,
             }
 
             # Cache the result for future queries (exclude execution_time)

@@ -260,6 +260,66 @@ def test_query_endpoint_executes_dml_queries_successfully(monkeypatch):
     assert "execute" in call_log
 
 
+def test_query_endpoint_returns_query_items_for_compound_request(monkeypatch):
+    query_router = importlib.import_module("api.routes.query")
+
+    executor = FakeExecutor()
+
+    async def fake_generate_sql_items(system_prompt: str, user_prompt: str, llm_client):
+        assert "Task intents to satisfy" in system_prompt
+        return (
+            [
+                {
+                    "intent_label": "table_inventory",
+                    "sql_query": "SELECT 'users' AS table_name",
+                    "explanation": "List tables",
+                },
+                {
+                    "intent_label": "relationship_inventory",
+                    "sql_query": "SELECT 'orders.user_id -> users.id' AS relationship",
+                    "explanation": "List relationships",
+                },
+            ],
+            False,
+        )
+
+    monkeypatch.setattr(query_router, "get_executor_for_session", lambda _sid: executor)
+    monkeypatch.setattr(query_router, "generate_sql_items", fake_generate_sql_items)
+    monkeypatch.setattr(
+        query_router,
+        "generate_sql",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("single-query path should not run")
+        ),
+    )
+    monkeypatch.setattr(
+        query_router, "validate_sql", lambda *_args, **_kwargs: (True, None)
+    )
+    monkeypatch.setattr(
+        query_router,
+        "format_response",
+        lambda rows, message, sql, llm_client: query_router.FormattedResponse(
+            table="compound",
+            summary="Handled compound request",
+            sql=sql,
+            row_count=len(rows),
+        ),
+    )
+
+    response = asyncio.run(
+        query_router.query_endpoint(
+            query_router.QueryRequest(
+                message="Show tables and relationships",
+                session_id="session-compound",
+            )
+        )
+    )
+
+    assert response["multi_query_mode"] is True
+    assert len(response["query_items"]) == 2
+    assert response["coverage_report"]["detected_intents"]
+
+
 def test_query_endpoint_maps_timeout_to_http_408(monkeypatch):
     query_router = importlib.import_module("api.routes.query")
 

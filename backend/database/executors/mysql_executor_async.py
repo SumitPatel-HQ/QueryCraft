@@ -30,6 +30,19 @@ WHERE TABLE_SCHEMA = DATABASE()
 ORDER BY TABLE_NAME, ORDINAL_POSITION
 """
 
+_FOREIGN_KEY_SQL = """
+SELECT
+    kcu.TABLE_NAME AS table_name,
+    kcu.COLUMN_NAME AS column_name,
+    kcu.REFERENCED_TABLE_NAME AS referenced_table,
+    kcu.REFERENCED_COLUMN_NAME AS referenced_column,
+    kcu.CONSTRAINT_NAME AS constraint_name
+FROM information_schema.KEY_COLUMN_USAGE kcu
+WHERE kcu.TABLE_SCHEMA = DATABASE()
+  AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+ORDER BY kcu.TABLE_NAME, kcu.COLUMN_NAME
+"""
+
 
 class MySQLExecutorAsync:
     """Execute MySQL operations through an async pool."""
@@ -123,29 +136,66 @@ class MySQLExecutorAsync:
             return False
 
     async def introspect_schema(self) -> dict[str, list[dict[str, Any]]]:
-        """Return MySQL schema metadata in the shared executor format."""
+        """Return MySQL schema metadata in the shared executor format with foreign keys."""
         try:
             if self.pool is None:
                 await self.connect(self.config)
             async with self.pool.acquire() as connection:
                 async with connection.cursor() as cursor:
+                    # Fetch column metadata
                     await cursor.execute(_INTROSPECTION_SQL)
                     rows = await cursor.fetchall()
                     columns = [column[0] for column in cursor.description]
+
+                    # Fetch foreign key metadata
+                    await cursor.execute(_FOREIGN_KEY_SQL)
+                    fk_rows = await cursor.fetchall()
+                    fk_columns = [column[0] for column in cursor.description]
         except Exception as exc:
             raise SchemaIntrospectionError(
                 "Failed to introspect MySQL schema", exc
             ) from exc
 
+        # Build foreign key lookup map
+        fk_map: dict[tuple[str, str], dict[str, str]] = {}
+        for fk_row in self._rows_to_dicts(fk_rows, fk_columns):
+            # Only add if all required FK fields are present
+            if all(
+                k in fk_row
+                for k in [
+                    "table_name",
+                    "column_name",
+                    "referenced_table",
+                    "referenced_column",
+                    "constraint_name",
+                ]
+            ):
+                key = (fk_row["table_name"], fk_row["column_name"])
+                fk_map[key] = {
+                    "referenced_table": fk_row["referenced_table"],
+                    "referenced_column": fk_row["referenced_column"],
+                    "constraint_name": fk_row["constraint_name"],
+                }
+
+        # Build schema with enriched column metadata
         schema: dict[str, list[dict[str, Any]]] = {}
         for row in self._rows_to_dicts(rows, columns):
-            schema.setdefault(row["table_name"], []).append(
-                {
-                    "column": row["column_name"],
-                    "type": row["data_type"],
-                    "nullable": row["is_nullable"] == "YES",
-                }
-            )
+            table_name = row["table_name"]
+            column_name = row["column_name"]
+
+            column_info = {
+                "column": column_name,
+                "type": row["data_type"],
+                "nullable": row["is_nullable"] == "YES",
+            }
+
+            # Add foreign key metadata if present
+            fk_info = fk_map.get((table_name, column_name))
+            if fk_info:
+                column_info["foreign_key"] = fk_info
+
+            schema.setdefault(table_name, []).append(column_info)
+
         return schema
 
     async def execute_query(

@@ -49,48 +49,32 @@ def generate_query_explanation(
     results: List[Any]
 ) -> str:
     """
-    Generate detailed explanation for transparency
-    
+    Generate a concise plain-text explanation for why this query was chosen.
+
     Args:
         question: Original natural language question
         sql: Generated SQL query
         tables: List of tables used in the query
         results: Query execution results
-        
+
     Returns:
-        Detailed explanation string
+        Clean explanation string without markdown
     """
     result_count = len(results)
     tables_str = ", ".join(tables) if tables else "the database"
-    
-    explanation = f"""
-**Understanding This Query:**
+    parts: list[str] = []
 
-**What you asked:** "{question}"
+    parts.append(f"Queried {tables_str} to answer your question.")
 
-**Tables accessed:** {tables_str}
+    if "join" in sql.lower():
+        parts.append("Joins multiple tables for a complete view.")
+    if "group by" in sql.lower():
+        parts.append("Groups and aggregates results.")
+    if "order by" in sql.lower():
+        parts.append("Sorted for relevance.")
+    if "limit" in sql.lower():
+        parts.append("Limited to top results.")
 
-**What the SQL does:**
-The query searches through {tables_str} to find the information you requested. 
-"""
-    
-    if 'join' in sql.lower():
-        explanation += "It combines data from multiple tables to give you a complete picture. "
-    
-    if 'group by' in sql.lower():
-        explanation += "The results are grouped and aggregated to provide summary information. "
-    
-    if 'order by' in sql.lower():
-        explanation += "Results are sorted to show you the most relevant items first. "
-    
-    if 'limit' in sql.lower():
-        explanation += "Only the top results are shown for clarity. "
-    
-    explanation += f"""
+    parts.append(f"Returned {result_count} record{'s' if result_count != 1 else ''}.")
 
-**Results:** Found {result_count} matching record{"s" if result_count != 1 else ""}.
-
-**Why trust this?** This query was generated using AI analysis of your database schema and validated against actual data structures.
-"""
-    
-    return explanation.strip()
+    return " ".join(parts)

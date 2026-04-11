@@ -8,6 +8,7 @@ import re
 from typing import Dict, List, Any, Optional
 
 from .config import NLToSQLConfig
+from .intent_contract import CoverageReport, IntentPlan, IntentStatus
 from .utils import SQLUtils
 from .pattern_matcher import PatternMatchingEngine
 
@@ -20,22 +21,33 @@ class NLToSQLProcessor:
     Uses hybrid approach: LLM first, then pattern-matching fallback
     """
 
-    def __init__(self, schema: Dict[str, List[Dict]], introspector=None):
+    def __init__(
+        self,
+        schema: Dict[str, List[Dict]],
+        introspector=None,
+        db_type: Optional[str] = None,
+    ):
         """
         Initialize NL-to-SQL processor
 
         Args:
             schema: Database schema dictionary
             introspector: Schema introspector instance
+            db_type: Explicit database type ('mysql', 'postgresql', 'sqlite'). If not provided, will infer from introspector.
         """
         self.schema = schema
         self.table_names = list(schema.keys())
         self.introspector = introspector
         self.llm_generator = None
-        self.db_type = self._infer_db_type(introspector)
+        # Use explicit db_type if provided, otherwise infer
+        self.db_type = (
+            db_type if db_type is not None else self._infer_db_type(introspector)
+        )
 
-        # Initialize pattern matching engine
-        self.pattern_matcher = PatternMatchingEngine(self.table_names)
+        # Initialize pattern matching engine with db_type
+        self.pattern_matcher = PatternMatchingEngine(
+            self.table_names, self.db_type, self.schema
+        )
 
         # Try to initialize LLM generator
         self._initialize_llm()
@@ -112,6 +124,86 @@ class NLToSQLProcessor:
 
         # Fallback only when no API is responding/available.
         return self._pattern_matching_fallback(question)
+
+    def process_intent_plan(self, intent_plan: IntentPlan) -> Dict[str, Any]:
+        """Process each detected intent independently and preserve partial success."""
+        query_items: list[Dict[str, Any]] = []
+
+        for intent in intent_plan.intents:
+            try:
+                result = self.process_query(intent.text)
+                intent.status = IntentStatus.SUCCESS
+                intent.sql_query = result.get("sql_query")
+                intent.explanation = result.get("explanation")
+                intent.confidence = float(result.get("confidence", 0)) / 100.0
+                query_items.append(
+                    {
+                        "intent_label": intent.intent_type.value,
+                        "sql_query": result.get("sql_query", ""),
+                        "explanation": result.get("explanation", ""),
+                        "tables_used": result.get("tables_used", []),
+                        "status": "success",
+                        "error_message": None,
+                        "result_rows": [],
+                        "confidence": result.get("confidence", 0),
+                    }
+                )
+            except Exception as exc:
+                intent.status = IntentStatus.FAILED
+                intent.error_message = str(exc)
+                query_items.append(
+                    {
+                        "intent_label": intent.intent_type.value,
+                        "sql_query": "",
+                        "explanation": "",
+                        "tables_used": [],
+                        "status": "failed",
+                        "error_message": str(exc),
+                        "result_rows": [],
+                        "confidence": 0,
+                    }
+                )
+
+        first_success = next(
+            (item for item in query_items if item["status"] == "success"), None
+        )
+        coverage_report = CoverageReport(
+            detected_intents=[
+                intent.intent_type.value for intent in intent_plan.intents
+            ],
+            satisfied_intents=[
+                item["intent_label"]
+                for item in query_items
+                if item["status"] == "success"
+            ],
+            missing_intents=[
+                item["intent_label"]
+                for item in query_items
+                if item["status"] != "success"
+            ],
+            retry_count=0,
+            fallback_used=any(
+                item["status"] != "success"
+                or item.get("sql_query", "").startswith("SELECT '")
+                for item in query_items
+            ),
+        )
+
+        return {
+            "sql_query": first_success["sql_query"] if first_success else "",
+            "explanation": first_success["explanation"]
+            if first_success
+            else "No successful query generated.",
+            "generation_method": "multi_intent"
+            if intent_plan.is_compound
+            else "fallback",
+            "confidence": first_success["confidence"] if first_success else 0,
+            "tables_used": first_success["tables_used"] if first_success else [],
+            "tokens_used": 0,
+            "query_items": query_items,
+            "coverage_report": coverage_report.to_dict(),
+            "multi_query_mode": intent_plan.is_compound,
+        }
 
     def _try_llm_generation(
         self, question: str
@@ -190,14 +282,22 @@ class NLToSQLProcessor:
         schema_lines: List[str] = []
         for table_name, columns in self.schema.items():
             column_defs = []
+            relationship_defs = []
             for col in columns or []:
                 col_name = col.get("name") or col.get("column") or "unknown"
                 col_type = col.get("type", "TEXT")
                 column_defs.append(f"{col_name} ({col_type})")
+                fk_info = col.get("foreign_key") or {}
+                if fk_info:
+                    relationship_defs.append(
+                        f"{table_name}.{col_name} -> {fk_info.get('referenced_table', 'unknown')}.{fk_info.get('referenced_column', 'unknown')}"
+                    )
             schema_lines.append(f"Table: {table_name}")
             schema_lines.append(
                 f"Columns: {', '.join(column_defs) if column_defs else 'unknown'}"
             )
+            if relationship_defs:
+                schema_lines.append(f"Relationships: {', '.join(relationship_defs)}")
             schema_lines.append("")
 
         return "\n".join(schema_lines).strip()

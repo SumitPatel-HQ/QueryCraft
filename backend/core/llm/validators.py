@@ -15,6 +15,28 @@ logger = logging.getLogger(__name__)
 class SQLValidator:
     """Validates and cleans SQL queries"""
 
+    # System schemas/databases that should always bypass table validation
+    # These are metadata sources that exist across all database instances
+    SYSTEM_SCHEMAS = {
+        # SQLite system tables
+        "sqlite_master",
+        "sqlite_temp_master",
+        "sqlite_sequence",
+        # MySQL system databases
+        "information_schema",
+        "mysql",
+        "performance_schema",
+        "sys",
+        # PostgreSQL system schemas
+        "pg_catalog",
+        "pg_toast",
+        "pg_temp",
+        "pg_temp_1",
+        "pg_toast_temp_1",
+        # ANSI standard (used by MySQL and PostgreSQL)
+        "information_schema",
+    }
+
     @staticmethod
     def clean_sql_response(sql: str) -> str:
         """
@@ -114,22 +136,30 @@ class SQLValidator:
             sql: SQL query string
 
         Returns:
-            List of table names found in the query
+            List of table names found in the query (excludes table-valued functions and system schemas)
         """
         try:
             sql_lower = sql.lower()
             tables = []
 
             # Regex to find table names after FROM and JOIN keywords
+            # Captures the identifier and optional parentheses to detect function calls
             identifier_pattern = r'(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)'
-            from_pattern = rf"from\s+({identifier_pattern})"
-            join_pattern = rf"join\s+({identifier_pattern})"
+            from_pattern = rf"from\s+({identifier_pattern})(\s*\()?"
+            join_pattern = rf"join\s+({identifier_pattern})(\s*\()?"
 
             from_matches = re.findall(from_pattern, sql_lower)
             join_matches = re.findall(join_pattern, sql_lower)
 
-            tables.extend(from_matches)
-            tables.extend(join_matches)
+            # Filter out function calls (identifiers followed by parentheses)
+            # This excludes pragma_table_info(), pragma_table_list(), and other table-valued functions
+            for match, has_paren in from_matches:
+                if not has_paren:  # Only include if NOT followed by parentheses
+                    tables.append(match)
+
+            for match, has_paren in join_matches:
+                if not has_paren:  # Only include if NOT followed by parentheses
+                    tables.append(match)
 
             def _strip_quotes(identifier: str) -> str:
                 ident = identifier.strip()
@@ -142,6 +172,18 @@ class SQLValidator:
                 return ident
 
             tables = [_strip_quotes(t) for t in tables]
+
+            # Filter out system schemas/databases
+            # These are metadata sources that should always be allowed
+            original_tables = tables.copy()
+            tables = [t for t in tables if t.lower() not in SQLValidator.SYSTEM_SCHEMAS]
+
+            # Log system schema filtering for diagnostics
+            filtered_out = set(original_tables) - set(tables)
+            if filtered_out:
+                logger.info(
+                    f"🔧 Filtered out system schemas: {filtered_out} (allowed list: {SQLValidator.SYSTEM_SCHEMAS})"
+                )
 
             # Remove duplicates and return
             return list(set(tables))
