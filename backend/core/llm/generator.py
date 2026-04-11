@@ -232,15 +232,22 @@ class LLMSQLGenerator:
                 natural_language_query, sql_query, tables_used
             )
 
-            # Call configured provider API
-            response = self.provider.generate(prompt)
+            # Call provider API with failover protection (same as SQL generation)
+            response = self._generate_with_failover(prompt)
 
             if not response["success"]:
                 # Use fallback explanation if API call fails
                 fallback = self.prompts.get_fallback_explanation(sql_query, tables_used)
                 return {"explanation": fallback, "error": response["error"]}
 
-            explanation = response["text"].strip()
+            explanation_text = response.get("text")
+            if not explanation_text:
+                # Use fallback if response text is empty/None despite success
+                fallback = self.prompts.get_fallback_explanation(sql_query, tables_used)
+                logger.warning("Explanation API returned empty text, using fallback")
+                return {"explanation": fallback, "error": None}
+
+            explanation = explanation_text.strip()
             logger.info("✅ Explanation generated successfully")
 
             return {"explanation": explanation, "error": None}
