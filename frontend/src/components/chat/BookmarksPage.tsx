@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Pin, MessageSquare, Search, Database } from "lucide-react";
+import { Bookmark as BookmarkIcon, Pin, MessageSquare, Search, Database } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { useAuthContext } from "@/components/providers/auth-provider";
 
@@ -178,10 +178,10 @@ export default function BookmarksPage() {
           </button>
           <button 
             onClick={() => remove(item.id)} 
-            className="p-2 text-[#777] rounded-lg hover:text-red-400 hover:bg-red-400/10 transition-colors"
-            title="Delete Bookmark"
+            className="p-2 text-yellow-500/80 rounded-lg hover:text-yellow-500 hover:bg-yellow-500/10 transition-colors"
+            title="Unbookmark"
           >
-            <Trash2 size={16} strokeWidth={1.5} />
+            <BookmarkIcon size={16} className="fill-current" strokeWidth={1.5} />
           </button>
         </div>
       </div>
