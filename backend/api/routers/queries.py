@@ -366,7 +366,8 @@ async def query_database(
                     results = first_success_item.get("result_rows", [])
                     columns = first_success_item.get("columns", [])
                     sql_query = first_success_item.get("sql_query", sql_query)
-                    explanation = first_success_item.get("explanation", explanation)
+                    item_explanation = first_success_item.get("explanation", "")
+                    explanation = item_explanation if item_explanation else explanation
                     tables_used = first_success_item.get("tables_used", tables_used)
                     coverage_report = validate_intent_coverage(
                         intent_plan, query_items
@@ -455,7 +456,9 @@ async def query_database(
                     )
 
             execution_time_ms = int((time.time() - start_time) * 1000)
-            confidence = min(95, max(85, base_confidence + 35))
+            # Use the actual confidence score from LLM/pattern matching (already 0-100)
+            # Only clamp to valid range, don't artificially boost
+            confidence = max(0, min(100, base_confidence))
             complexity = determine_query_complexity(sql_query)
             why_explanation = generate_query_explanation(
                 request.question, sql_query, tables_used, results

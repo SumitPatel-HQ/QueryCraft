@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Clock, TrendingUp, Sparkles } from "lucide-react";
+import { Code, Clock, TrendingUp, Sparkles, Lightbulb } from "lucide-react";
 import type { QueryResponse } from "@/types/api";
 import SQLCodeBlock from "@/modules/dashboard/chat/SQLCodeBlock";
 
@@ -56,7 +56,17 @@ export default function QueryResults({ result }: QueryResultsProps) {
         <SQLCodeBlock code={result.sql_query} />
       </div>
 
-
+      {result.explanation && (
+        <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4">
+          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-[#888888] mb-2">
+            <Lightbulb size={14} />
+            Explanation
+          </div>
+          <p className="text-[13px] text-[#cccccc] leading-relaxed">
+            {result.explanation}
+          </p>
+        </div>
+      )}
 
       <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] overflow-hidden">
         <div className="p-4 border-b border-[rgba(255,255,255,0.08)]">

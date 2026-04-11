@@ -63,13 +63,21 @@ Generate the SQL query:"""
         """
         tables_str = ", ".join(tables_used) if tables_used else "database tables"
         
-        return f"""You are an expert SQL Explainer. Explain this SQL query in simple, human-readable language:
+        return f"""You are an expert SQL Explainer. Explain this SQL query in simple, human-readable language.
 
 Question: {user_question}
 SQL Query: {sql}
 Tables Used: {tables_str}
 
-Provide a brief, clear explanation (1-2 sentences) of what this query does."""
+RULES:
+1. Write exactly 1-2 plain sentences explaining what the query does
+2. Do NOT use markdown (no **, *, #, -, or bullet points)
+3. Do NOT include sections like "Understanding This Query", "What you asked", "Tables accessed", "Results", or "Why trust this"
+4. Do NOT mention row counts or confidence
+5. Just describe what data the query retrieves in everyday language
+
+Example good explanation: This query lists all customers from the customers table.
+Example bad explanation: **Understanding This Query:** **What you asked:** "show customers" **Tables accessed:** customers This query finds 50 records."""
     
     @staticmethod
     def get_fallback_explanation(sql: str, tables_used: list) -> str:

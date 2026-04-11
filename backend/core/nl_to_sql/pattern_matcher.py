@@ -281,13 +281,6 @@ class PatternMatchingEngine:
                 "explanation": "Relationship queries require explicit FK metadata for this database type.",
             }
 
-        # Single table
-        main_table = relevant_tables[0]
-        return {
-            "sql_query": f"SELECT * FROM {main_table} LIMIT {NLToSQLConfig.DEFAULT_LIMIT}",
-            "explanation": f"This query lists records from the {main_table} table.",
-        }
-
     def _handle_generic_query(self, question_lower: str) -> Dict[str, Any]:
         """Handle generic queries"""
         relevant_tables = self.table_identifier.identify_relevant_tables(question_lower)
