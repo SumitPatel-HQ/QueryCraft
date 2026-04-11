@@ -8,6 +8,7 @@ import type {
   DatabaseResponse,
   DatabaseUploadResponse,
   DeleteDatabaseResponse,
+  MySQLActionResponse,
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
@@ -141,6 +142,34 @@ export async function deleteDatabase(
     {
       method: "DELETE",
     }
+  );
+}
+
+export async function getMySQLConnections(
+  token: string | null
+): Promise<DatabaseResponse[]> {
+  return clientFetch<DatabaseResponse[]>("/api/v1/databases/mysql", token);
+}
+
+export async function deactivateMySQLConnection(
+  databaseId: number,
+  token: string | null
+): Promise<MySQLActionResponse> {
+  return clientFetch<MySQLActionResponse>(
+    `/api/v1/databases/mysql/${databaseId}/deactivate`,
+    token,
+    { method: "PATCH" }
+  );
+}
+
+export async function reactivateMySQLConnection(
+  databaseId: number,
+  token: string | null
+): Promise<MySQLActionResponse> {
+  return clientFetch<MySQLActionResponse>(
+    `/api/v1/databases/mysql/${databaseId}/reactivate`,
+    token,
+    { method: "PATCH" }
   );
 }
 
