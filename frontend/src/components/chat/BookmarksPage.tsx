@@ -189,7 +189,7 @@ export default function BookmarksPage() {
   };
 
   return (
-    <div className="flex flex-col max-w-4xl w-full mx-auto pb-20 px-4">
+    <div className="flex flex-col max-w-[1200px] w-full mx-auto pb-20 px-4">
       {/* Header */}
       <header className="mb-8 pt-2">
         <h1 className="text-[22px] font-semibold tracking-tight text-[#fcfcfc] mb-1.5">Bookmarks</h1>
@@ -206,7 +206,7 @@ export default function BookmarksPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search your bookmarks..."
-          className="w-full bg-[#0a0a0a] border border-white/[0.06] text-[#eee] rounded-[12px] pl-10 pr-4 py-2.5 text-[14px] outline-none focus:border-white/[0.15] focus:bg-[#111] focus:ring-4 focus:ring-white/[0.02] transition-all placeholder:text-[#555]"
+          className="w-full bg-[#0a0a0a] border border-white/[0.06] text-[#eee] rounded-[12px] pl-10 pr-4 py-2.5 text-[14px] outline-none  transition-all placeholder:text-[#555]"
         />
       </div>
 

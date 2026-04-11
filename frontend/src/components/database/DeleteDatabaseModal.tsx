@@ -44,8 +44,8 @@ export default function DeleteDatabaseModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isDeleting && onClose()}>
       <DialogContent className="bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-[12px] w-full max-w-[400px] p-6 text-[#f0f0f0] sm:rounded-[12px] shadow-2xl">
         <DialogHeader className="flex flex-col items-center text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
-            <AlertTriangle className="text-red-500" size={24} />
+          <div className="w-12 h-12 rounded-full bg-red-500/5 flex items-center justify-center mb-2">
+            <AlertTriangle className="text-red-500/70" size={24} />
           </div>
           <DialogTitle className="text-[18px] font-semibold text-white">
             Delete Database
@@ -71,7 +71,7 @@ export default function DeleteDatabaseModal({
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex-1 bg-red-600 hover:bg-red-500 text-white font-medium shadow-[0_0_20px_rgba(220,38,38,0.15)] transition-all duration-300"
+              className="flex-1 bg-red-500/60 hover:bg-red-500 text-white font-medium shadow-[0_0_20px_rgba(220,38,38,0.1)] transition-all duration-300"
             >
               {isDeleting ? (
                 <div className="flex items-center gap-2">
