@@ -101,7 +101,10 @@ backend/privateKey.json
 backend/firebase-service-account.json
 
 answers.md
+answerV2.md
 SecurityProblems.md
 updateagents.md 
 verify_fixes.py
 test_utils_fix.py
+QueryCraft_Solution1_SQLite_Sandbox_(Copy-on-Chat).md
+QueryCraft_MySQL_Isolation_v2.md
