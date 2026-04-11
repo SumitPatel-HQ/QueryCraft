@@ -13,6 +13,7 @@ import type {
   DatabaseResponse,
   DatabaseUploadResponse,
   DeleteDatabaseResponse,
+  MySQLActionResponse,
   SchemaDataResponse,
   DatabaseTablesResponse,
   DatabaseHistoryResponse,
@@ -112,6 +113,27 @@ export function useApi() {
     [getAuthToken]
   );
 
+  const getMySQLConnections = useCallback(async (): Promise<DatabaseResponse[]> => {
+    const token = await getAuthToken();
+    return apiClient.getMySQLConnections(token);
+  }, [getAuthToken]);
+
+  const deactivateMySQLConnection = useCallback(
+    async (databaseId: number): Promise<MySQLActionResponse> => {
+      const token = await getAuthToken();
+      return apiClient.deactivateMySQLConnection(databaseId, token);
+    },
+    [getAuthToken]
+  );
+
+  const reactivateMySQLConnection = useCallback(
+    async (databaseId: number): Promise<MySQLActionResponse> => {
+      const token = await getAuthToken();
+      return apiClient.reactivateMySQLConnection(databaseId, token);
+    },
+    [getAuthToken]
+  );
+
   const getDatabaseSchema = useCallback(
     async (databaseId: number): Promise<SchemaDataResponse> => {
       const token = await getAuthToken();
@@ -177,6 +199,9 @@ export function useApi() {
     uploadDatabase,
     createMySQLConnection,
     deleteDatabase,
+    getMySQLConnections,
+    deactivateMySQLConnection,
+    reactivateMySQLConnection,
     getDatabaseSchema,
     getDatabaseTables,
     getDatabaseHistory,
@@ -191,6 +216,9 @@ export function useApi() {
     uploadDatabase,
     createMySQLConnection,
     deleteDatabase,
+    getMySQLConnections,
+    deactivateMySQLConnection,
+    reactivateMySQLConnection,
     getDatabaseSchema,
     getDatabaseTables,
     getDatabaseHistory,

@@ -1,13 +1,20 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Send, Loader2, Database as DatabaseIcon, Paperclip, ChevronDown } from "lucide-react";
+import { Send, Loader2, Database as DatabaseIcon, Paperclip } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/hooks/use-api"
 import { useChat, type ChatMessage } from "@/hooks/use-chat";
 import { cn } from "@/lib/utils"
 import QueryResults from "./QueryResults"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { DatabaseResponse, QueryResponse } from "@/types/api";
 
 interface QueryInterfaceProps {
@@ -337,25 +344,27 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   return (
     <div className="flex flex-col gap-6 min-h-[calc(100vh-220px)] pb-28">
       {availableDatabases.length > 1 && (
-        <div>
-          <label className="block text-[12px] text-[#888888] mb-2">Select Database</label>
-          <div className="relative group">
-            <select
-              value={selectedDatabaseId || ""}
-              onChange={(e) => handleDatabaseSelection(Number(e.target.value) || null)}
-              className="w-full appearance-none bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] pl-4 pr-10 py-3 text-[14px] text-[#f0f0f0] focus:outline-none focus:border-[rgba(255,255,255,0.2)] transition-all cursor-pointer"
-            >
-              <option value="">Choose a database...</option>
+        <div className="w-full">
+          <label className="block text-[12px] text-[#888888] mb-2 px-1">Select Database</label>
+          <Select
+            value={selectedDatabaseId ? String(selectedDatabaseId) : ""}
+            onValueChange={(val) => handleDatabaseSelection(Number(val) || null)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Choose a database..." />
+            </SelectTrigger>
+            <SelectContent>
               {availableDatabases.map((db) => (
-                <option key={db.id} value={db.id}>
-                  {db.display_name} ({db.table_count} tables)
-                </option>
+                <SelectItem key={db.id} value={String(db.id)}>
+                  <div className="flex items-center gap-2">
+                    <DatabaseIcon size={14} className="text-[#666]" />
+                    <span>{db.display_name}</span>
+                    <span className="text-[11px] text-[#444] ml-2 font-mono uppercase tracking-widest">{db.table_count} tables</span>
+                  </div>
+                </SelectItem>
               ))}
-            </select>
-            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[#666666] group-focus-within:text-[#f0f0f0] transition-colors">
-              <ChevronDown size={16} strokeWidth={2.5} />
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
