@@ -45,7 +45,7 @@ services:
     build: 
       context: ./frontend
       args:
-        - NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCfDQwtvMlzcJ1Go3Is4O8B70hlZ7Y_o70 # Pass production keys here if needed or from .env
+        - NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY} # Read from local .env or CI/CD secret store
     container_name: querycraft-frontend
     ports:
       - "3000:3000"
