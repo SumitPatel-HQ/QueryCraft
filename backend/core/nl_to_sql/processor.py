@@ -43,6 +43,15 @@ class NLToSQLProcessor:
         self.db_type = (
             db_type if db_type is not None else self._infer_db_type(introspector)
         )
+        if self.db_type == "postgresql":
+            # Ensure it matches the constant used in other places
+            self.db_type = "postgresql"
+        elif self.db_type == "sqlite":
+            self.db_type = "sqlite"
+        elif self.db_type == "mysql":
+            self.db_type = "mysql"
+        else:
+            self.db_type = "sqlite" # Safe default for QueryCraft (was mysql)
 
         # Initialize pattern matching engine with db_type
         self.pattern_matcher = PatternMatchingEngine(
@@ -77,7 +86,7 @@ class NLToSQLProcessor:
             return "postgresql"
         if "mysql" in intro_cls or "mysql" in intro_mod:
             return "mysql"
-        return "mysql"
+        return "sqlite"  # Default to sqlite which is the project's baseline
 
     def process_query(self, question: str) -> Dict[str, Any]:
         """
@@ -239,8 +248,9 @@ class NLToSQLProcessor:
 
             # Check if LLM generation was successful
             if result.get("sql_query") and not result.get("error"):
+                raw_sql = result["sql_query"]
                 sql_query = SQLUtils.quote_table_identifiers(
-                    result["sql_query"], self.table_names
+                    raw_sql, self.table_names, self.db_type
                 )
                 tables_used = SQLUtils.extract_tables_from_sql(sql_query)
 
@@ -385,7 +395,9 @@ class NLToSQLProcessor:
         result = self.pattern_matcher.generate_query(question, question_lower)
 
         # Add metadata
-        sql = SQLUtils.quote_table_identifiers(result["sql_query"], self.table_names)
+        sql = SQLUtils.quote_table_identifiers(
+            result["sql_query"], self.table_names, self.db_type
+        )
         result["sql_query"] = sql
         result["generation_method"] = "fallback"
         result["confidence"] = SQLUtils.calculate_pattern_confidence(question_lower)

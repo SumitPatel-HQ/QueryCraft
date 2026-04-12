@@ -73,7 +73,25 @@ export interface QueryResponse {
   execution_time_ms?: number | null;
   query_complexity?: string | null; // "Easy" | "Medium" | "Advanced"
   why_this_query?: string | null; // Detailed explanation
+  query_items?: Array<{
+    intent_label: string;
+    sql_query: string;
+    explanation: string;
+    status: string;
+    result_rows: unknown[];
+    columns: string[];
+    error_message?: string | null;
+  }> | null;
+  coverage_report?: {
+    detected_intents: string[];
+    satisfied_intents: string[];
+    missing_intents: string[];
+    retry_count: number;
+    fallback_used: boolean;
+  } | null;
+  multi_query_mode?: boolean;
 }
+
 
 // ============================================================================
 // Upload & Response Types

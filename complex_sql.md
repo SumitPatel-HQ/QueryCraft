@@ -11,7 +11,6 @@
 ### 2. Monthly Revenue Trend Per Store (Window Function + DATE_FORMAT)
 
 
-
 ### 3. Customers Who Rented Every Film in a Specific Category (NOT EXISTS + Correlated Subquery)
 
 

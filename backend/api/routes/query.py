@@ -143,20 +143,34 @@ async def query_endpoint(request: QueryRequest) -> dict[str, Any]:
             )
             for generated_item in generated_items:
                 sql_query = generated_item["sql_query"]
-                validate_sql(sql_query, dialect=dialect, raise_on_error=True)
-                rows = await executor.execute_query(sql_query)
-                query_items.append(
-                    {
-                        "intent_label": generated_item["intent_label"],
-                        "sql_query": sql_query,
-                        "explanation": generated_item.get("explanation", ""),
-                        "tables_used": [],
-                        "status": "success",
-                        "error_message": None,
-                        "result_rows": rows,
-                        "confidence": 100,
-                    }
-                )
+                try:
+                    validate_sql(sql_query, dialect=dialect, raise_on_error=True)
+                    rows = await executor.execute_query(sql_query)
+                    query_items.append(
+                        {
+                            "intent_label": generated_item["intent_label"],
+                            "sql_query": sql_query,
+                            "explanation": generated_item.get("explanation", ""),
+                            "tables_used": [],
+                            "status": "success",
+                            "error_message": None,
+                            "result_rows": rows,
+                            "confidence": 100,
+                        }
+                    )
+                except Exception as item_error:
+                    query_items.append(
+                        {
+                            "intent_label": generated_item["intent_label"],
+                            "sql_query": sql_query,
+                            "explanation": generated_item.get("explanation", ""),
+                            "tables_used": [],
+                            "status": "failed",
+                            "error_message": str(item_error),
+                            "result_rows": [],
+                            "confidence": 0,
+                        }
+                    )
         else:
             generated_sql, _ = await _maybe_await(
                 generate_sql(system_prompt, user_prompt, sql_client)

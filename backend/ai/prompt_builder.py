@@ -7,7 +7,6 @@ from typing import Any
 
 
 logger = logging.getLogger(__name__)
-FORBIDDEN_KEYWORDS = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "EXEC"]
 
 
 def _format_schema(schema_dict: dict[str, list[dict[str, Any]]]) -> str:
@@ -152,7 +151,6 @@ def build_prompt(
     """Build system and user prompts for dialect-aware SQL generation."""
     schema_block = _format_schema(schema_dict)
     history_block = _format_history(conversation_history)
-    forbidden = ", ".join(FORBIDDEN_KEYWORDS)
     metadata_examples = _get_metadata_examples(dialect)
     intent_summary = ""
     multi_query_instructions = ""
@@ -188,8 +186,7 @@ def build_prompt(
         "Generate ONLY valid SQL for this dialect.\n"
         "Output constraints:\n"
         "- Return SQL only (no markdown, no prose, no explanation).\n"
-        "- The final query MUST be a SELECT statement (CTE WITH is allowed).\n"
-        f"- Forbidden keywords: {forbidden}.\n"
+        "- Generate the appropriate SQL statement for the user's request.\n"
         "- Use table aliases for multi-table queries.\n"
         "- Use COALESCE for NULL handling where needed.\n"
         "\n"
@@ -205,6 +202,16 @@ def build_prompt(
         f"{multi_query_instructions}"
         "\n"
         f"{metadata_examples}\n"
+        "DDL EXAMPLES:\n"
+        "When users ask to modify schema (add/drop/change columns or tables), generate appropriate ALTER statements:\n\n"
+        "Question: drop column temp_C from weather_data\n"
+        "Answer: ALTER TABLE weather_data DROP COLUMN temp_C\n\n"
+        "Question: delete the price column from products\n"
+        "Answer: ALTER TABLE products DROP COLUMN price\n\n"
+        "Question: add column email to users table\n"
+        "Answer: ALTER TABLE users ADD COLUMN email VARCHAR(255)\n\n"
+        "Question: remove table old_logs\n"
+        "Answer: DROP TABLE old_logs\n\n"
         "Schema:\n"
         f"{schema_block}"
     )

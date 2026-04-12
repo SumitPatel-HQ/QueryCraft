@@ -25,6 +25,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
   const activeSessionId = sessionParam ? Number(sessionParam) : null;
   const sessionDbMapStorageKey = "chat_session_db_map";
   const sessionResultMapStorageKey = "chat_session_result_map";
+  const MAX_SESSION_RESULTS = 10;
   const [availableDatabases, setAvailableDatabases] = useState<DatabaseResponse[]>(databases);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<number | null>(
     preselectedDatabaseId || (databases.length === 1 ? databases[0].id : null)
@@ -67,9 +68,13 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     if (typeof window === "undefined") {
       return;
     }
-    const current = readSessionDbMap();
-    current[String(sessionId)] = databaseId;
-    window.localStorage.setItem(sessionDbMapStorageKey, JSON.stringify(current));
+    try {
+      const current = readSessionDbMap();
+      current[String(sessionId)] = databaseId;
+      window.localStorage.setItem(sessionDbMapStorageKey, JSON.stringify(current));
+    } catch (err) {
+      console.error("Failed to save session database mapping:", err);
+    }
   }, [readSessionDbMap, sessionDbMapStorageKey]);
 
   const readSessionResultMap = useCallback(() => {
@@ -93,9 +98,40 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     if (typeof window === "undefined") {
       return;
     }
-    const current = readSessionResultMap();
-    current[String(sessionId)] = response;
-    window.localStorage.setItem(sessionResultMapStorageKey, JSON.stringify(current));
+    try {
+      const current = readSessionResultMap();
+      const sessionIdStr = String(sessionId);
+
+      // If updating existing entry, remove it first to re-insert at end (LRU)
+      delete current[sessionIdStr];
+      current[sessionIdStr] = response;
+
+      // Enforce max entries limit (LRU eviction)
+      const entries = Object.entries(current);
+      if (entries.length > MAX_SESSION_RESULTS) {
+        const toRemove = entries.slice(0, entries.length - MAX_SESSION_RESULTS);
+        for (const [key] of toRemove) {
+          delete current[key];
+        }
+      }
+
+      window.localStorage.setItem(sessionResultMapStorageKey, JSON.stringify(current));
+    } catch (err) {
+      // Handle quota exceeded or other storage errors gracefully
+      if (err instanceof Error && err.name === "QuotaExceededError") {
+        console.warn("localStorage quota exceeded, clearing old session results");
+        try {
+          // Clear all session results and store only current one
+          const minimal: Record<string, QueryResponse> = { [String(sessionId)]: response };
+          window.localStorage.setItem(sessionResultMapStorageKey, JSON.stringify(minimal));
+        } catch {
+          // If even that fails, clear the key entirely
+          window.localStorage.removeItem(sessionResultMapStorageKey);
+        }
+      } else {
+        console.error("Failed to save session result:", err);
+      }
+    }
   }, [readSessionResultMap, sessionResultMapStorageKey]);
 
   const updateUrlDatabaseParam = useCallback((databaseId: number | null) => {

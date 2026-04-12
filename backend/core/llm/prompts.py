@@ -33,6 +33,8 @@ IMPORTANT RULES:
 6. Use table aliases for better readability (e.g., 'c' for customers, 'o' for orders)
 7. For aggregate queries, always include proper GROUP BY clauses
 8. Return the query without code blocks, backticks, or the word "SQL"
+9. NEVER query information_schema, system tables, or metadata tables directly - relationship/foreign key info is already provided in the schema above
+10. SAFETY: Generate SELECT or WITH statements ONLY. DO NOT generate DDL (CREATE, ALTER, DROP) or DML (INSERT, UPDATE, DELETE, TRUNCATE) statements.
 
 EXAMPLES:
 Question: "How many customers do we have?"

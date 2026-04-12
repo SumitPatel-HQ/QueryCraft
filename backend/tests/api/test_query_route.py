@@ -42,6 +42,37 @@ class FakeExecutor:
         return self.rows
 
 
+class PartialFailureExecutor(FakeExecutor):
+    """Executor double that fails relationship lookups after a successful first query."""
+
+    async def introspect_schema(self) -> dict[str, list[dict[str, object]]]:
+        if self.call_log is not None:
+            self.call_log.append("schema")
+        return {
+            "users": [{"column": "id", "type": "integer", "nullable": False}],
+            "orders": [
+                {
+                    "column": "user_id",
+                    "type": "integer",
+                    "nullable": False,
+                    "foreign_key": {
+                        "referenced_table": "users",
+                        "referenced_column": "id",
+                        "constraint_name": "fk_orders_users",
+                    },
+                }
+            ],
+        }
+
+    async def execute_query(self, sql: str) -> list[dict[str, object]]:
+        self.executed_sql.append(sql)
+        if self.call_log is not None:
+            self.call_log.append(f"execute:{len(self.executed_sql)}")
+        if "relationship" in sql.lower() or "key_column_usage" in sql.lower():
+            raise RuntimeError("relationship metadata unavailable")
+        return [{"table_name": "users"}, {"table_name": "orders"}]
+
+
 class FakeConversationManager:
     """Conversation manager test double recording call order."""
 
@@ -318,6 +349,89 @@ def test_query_endpoint_returns_query_items_for_compound_request(monkeypatch):
     assert response["multi_query_mode"] is True
     assert len(response["query_items"]) == 2
     assert response["coverage_report"]["detected_intents"]
+
+
+def test_query_endpoint_compound_request_preserves_partial_results_on_intent_failure(
+    monkeypatch,
+):
+    query_router = importlib.import_module("api.routes.query")
+
+    call_log: list[str] = []
+    executor = PartialFailureExecutor(call_log=call_log)
+
+    async def fake_generate_sql_items(system_prompt: str, user_prompt: str, llm_client):
+        assert "RELATIONSHIPS:" in system_prompt
+        assert "orders.user_id -> users.id" in system_prompt
+        return (
+            [
+                {
+                    "intent_label": "table_inventory",
+                    "sql_query": "SELECT 'users' AS table_name UNION ALL SELECT 'orders' AS table_name",
+                    "explanation": "List tables",
+                },
+                {
+                    "intent_label": "relationship_inventory",
+                    "sql_query": "SELECT 'relationship lookup' AS relationship",
+                    "explanation": "List relationships",
+                },
+            ],
+            False,
+        )
+
+    def fake_validate_sql(sql: str, dialect: str, raise_on_error: bool = False):
+        assert dialect == "generic"
+        assert raise_on_error is True
+        return True, None
+
+    def fake_format_response(rows, message, sql, llm_client):
+        assert rows == [{"table_name": "users"}, {"table_name": "orders"}]
+        assert sql.startswith("SELECT 'users'")
+        return query_router.FormattedResponse(
+            table="compound",
+            summary="Handled partial compound request",
+            sql=sql,
+            row_count=len(rows),
+        )
+
+    monkeypatch.setattr(query_router, "get_executor_for_session", lambda _sid: executor)
+    monkeypatch.setattr(
+        query_router,
+        "conversation_manager",
+        FakeConversationManager(call_log),
+    )
+    monkeypatch.setattr(query_router, "generate_sql_items", fake_generate_sql_items)
+    monkeypatch.setattr(
+        query_router,
+        "generate_sql",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("single-query path should not run")
+        ),
+    )
+    monkeypatch.setattr(query_router, "validate_sql", fake_validate_sql)
+    monkeypatch.setattr(query_router, "format_response", fake_format_response)
+
+    response = asyncio.run(
+        query_router.query_endpoint(
+            query_router.QueryRequest(
+                message="Show tables and relationships",
+                session_id="session-compound-partial",
+            )
+        )
+    )
+
+    assert response["summary"] == "Handled partial compound request"
+    assert (
+        response["sql"]
+        == "SELECT 'users' AS table_name UNION ALL SELECT 'orders' AS table_name"
+    )
+    assert response["multi_query_mode"] is True
+    assert response["coverage_report"]["missing_intents"] == ["relationship_inventory"]
+    assert response["query_items"][0]["status"] == "success"
+    assert response["query_items"][1]["status"] == "failed"
+    assert (
+        response["query_items"][1]["error_message"]
+        == "relationship metadata unavailable"
+    )
 
 
 def test_query_endpoint_maps_timeout_to_http_408(monkeypatch):

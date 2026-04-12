@@ -60,9 +60,23 @@ class PatternMatchingEngine:
 
         elif any(
             word in question_lower
-            for word in ["list", "show", "all", "get", "relation", "relationship"]
+            for word in [
+                "list", "show", "all", "get", "describe",
+                "relation", "relationship", "foreign key", "constraint", "constraints",
+                "index", "indexes", "indices", "schema", "structure", "meta",
+                "primary key", "pk", "unique", "column", "columns",
+            ]
         ):
             return self._handle_list_queries(question_lower)
+
+        elif any(word in question_lower for word in ["min", "minimum", "max", "maximum", "least", "lowest"]):
+            return self._handle_min_max_queries(question_lower)
+
+        elif any(word in question_lower for word in ["distinct", "unique values", "different", "unique"]):
+            return self._handle_distinct_queries(question_lower)
+
+        elif any(word in question_lower for word in ["sort", "order by", "ascending", "descending", "alphabetical", "asc", "desc"]):
+            return self._handle_order_queries(question_lower)
 
         else:
             return self._handle_generic_query(question_lower)
@@ -135,6 +149,13 @@ class PatternMatchingEngine:
                 "fk",
                 "connect",
                 "link",
+                "constraint",
+                "reference",
+                "referencing",
+                "parent",
+                "child",
+                "pk",
+                "primary key",
             ]
         )
 
@@ -175,15 +196,81 @@ class PatternMatchingEngine:
 
     def _handle_relationship_query(self, question_lower: str) -> Dict[str, Any]:
         """Handle relationship/foreign key queries using metadata or safe fallback"""
+        # Check if asking about a specific referenced table
+        # e.g., "which tables reference country?", "what references the users table?"
+        referenced_table = self._extract_referenced_table_from_question(question_lower)
+
         # Check if schema has FK metadata
         has_fk_metadata = self._schema_has_foreign_keys()
 
         if has_fk_metadata:
-            # Generate FK listing query based on db_type
+            if referenced_table:
+                return self._generate_filtered_relationship_query(referenced_table)
+            # Generate all FK listing query
             return self._generate_relationship_metadata_query()
         else:
-            # FK metadata unavailable - use dialect-specific information_schema query
+            # FK metadata unavailable - cannot answer specific reference queries
+            if referenced_table:
+                return {
+                    "sql_query": f"SELECT 'Cannot determine which tables reference {referenced_table}' as message",
+                    "explanation": f"Foreign key metadata not available to find tables referencing {referenced_table}.",
+                }
             return self._generate_relationship_introspection_query()
+
+    def _extract_referenced_table_from_question(self, question_lower: str) -> str | None:
+        """Extract referenced table name from questions like 'which tables reference country?'"""
+        import re
+
+        # Patterns like: "which tables reference X?", "what references X?", "who references X?"
+        patterns = [
+            r"which tables reference\s+(\w+)",
+            r"what tables reference\s+(\w+)",
+            r"what references\s+(\w+)",
+            r"who references\s+(\w+)",
+            r"tables referencing\s+(\w+)",
+            r"referenced by\s+(\w+)",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, question_lower)
+            if match:
+                return match.group(1)
+
+        # Check if any available table is mentioned as being referenced
+        for table_name in self.available_tables:
+            # Look for "reference[s] [table_name]" or "[table_name] referenced"
+            if re.search(rf"reference[s]?\s+{table_name}\b", question_lower):
+                return table_name
+            if re.search(rf"{table_name}\b.*referenced", question_lower):
+                return table_name
+
+        return None
+
+    def _generate_filtered_relationship_query(self, referenced_table: str) -> Dict[str, Any]:
+        """Generate SQL showing only tables that reference the specified table"""
+        relationships = []
+        for table_name, columns in self.schema.items():
+            for column in columns:
+                fk_info = column.get("foreign_key")
+                if fk_info and fk_info.get("referenced_table") == referenced_table:
+                    col_name = column.get("column") or column.get("name")
+                    ref_col = fk_info.get("referenced_column")
+                    relationships.append(
+                        f"SELECT '{table_name}' as table_name, '{col_name}' as column_name, "
+                        f"'{referenced_table}' as referenced_table, '{ref_col}' as referenced_column"
+                    )
+
+        if relationships:
+            sql = " UNION ALL ".join(relationships)
+            return {
+                "sql_query": sql,
+                "explanation": f"These tables have foreign keys referencing the {referenced_table} table.",
+            }
+
+        return {
+            "sql_query": f"SELECT 'No tables found referencing {referenced_table}' as message",
+            "explanation": f"No foreign key relationships found where tables reference {referenced_table}.",
+        }
 
     def _schema_has_foreign_keys(self) -> bool:
         """Check if any column in schema has foreign_key metadata"""
@@ -280,6 +367,58 @@ class PatternMatchingEngine:
                 "sql_query": "SELECT 'Relationship introspection not supported for this database type' as message",
                 "explanation": "Relationship queries require explicit FK metadata for this database type.",
             }
+
+    def _handle_min_max_queries(self, question_lower: str) -> Dict[str, Any]:
+        """Handle min/max/minimum/maximum/least/lowest queries"""
+        relevant_tables = self.table_identifier.identify_relevant_tables(question_lower)
+
+        if not relevant_tables:
+            return self._get_fallback_query()
+
+        main_table = relevant_tables[0]
+
+        # Detect if it's min or max
+        is_min = any(word in question_lower for word in ["min", "minimum", "least", "lowest"])
+        direction = "ASC" if is_min else "DESC"
+        description = "minimum" if is_min else "maximum"
+
+        return {
+            "sql_query": f"SELECT * FROM {main_table} ORDER BY {main_table}_id {direction} LIMIT 1",
+            "explanation": f"This query finds the {description} value from the {main_table} table.",
+        }
+
+    def _handle_distinct_queries(self, question_lower: str) -> Dict[str, Any]:
+        """Handle distinct/unique values/different queries"""
+        relevant_tables = self.table_identifier.identify_relevant_tables(question_lower)
+
+        if not relevant_tables:
+            return self._get_fallback_query()
+
+        main_table = relevant_tables[0]
+
+        return {
+            "sql_query": f"SELECT DISTINCT * FROM {main_table} LIMIT {NLToSQLConfig.DEFAULT_LIMIT}",
+            "explanation": f"This query shows distinct/unique records from the {main_table} table.",
+        }
+
+    def _handle_order_queries(self, question_lower: str) -> Dict[str, Any]:
+        """Handle sort/order by/ascending/descending/alphabetical queries"""
+        relevant_tables = self.table_identifier.identify_relevant_tables(question_lower)
+
+        if not relevant_tables:
+            return self._get_fallback_query()
+
+        main_table = relevant_tables[0]
+
+        # Detect ascending or descending
+        is_desc = any(word in question_lower for word in ["descending", "desc", "highest", "top"])
+        direction = "DESC" if is_desc else "ASC"
+        description = "descending" if is_desc else "ascending"
+
+        return {
+            "sql_query": f"SELECT * FROM {main_table} ORDER BY {main_table}_id {direction} LIMIT {NLToSQLConfig.DEFAULT_LIMIT}",
+            "explanation": f"This query shows records from the {main_table} table sorted in {description} order.",
+        }
 
     def _handle_generic_query(self, question_lower: str) -> Dict[str, Any]:
         """Handle generic queries"""

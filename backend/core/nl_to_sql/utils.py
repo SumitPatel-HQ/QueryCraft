@@ -28,30 +28,11 @@ class SQLUtils:
         "index",
     }
 
-    # System schemas/databases that should always bypass table validation
-    # These are metadata sources that exist across all database instances
-    SYSTEM_SCHEMAS = {
-        # SQLite system tables
-        "sqlite_master",
-        "sqlite_temp_master",
-        "sqlite_sequence",
-        # MySQL system databases
-        "information_schema",
-        "mysql",
-        "performance_schema",
-        "sys",
-        # PostgreSQL system schemas
-        "pg_catalog",
-        "pg_toast",
-        "pg_temp",
-        "pg_temp_1",
-        "pg_toast_temp_1",
-        # ANSI standard (used by MySQL and PostgreSQL)
-        "information_schema",
-    }
-
     @staticmethod
-    def quote_identifier(identifier: str) -> str:
+    def quote_identifier(identifier: str, db_type: str = "sqlite") -> str:
+        if db_type == "mysql":
+            escaped = identifier.replace("`", "``")
+            return f"`{escaped}`"
         escaped = identifier.replace('"', '""')
         return f'"{escaped}"'
 
@@ -76,7 +57,9 @@ class SQLUtils:
         return not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", ident)
 
     @staticmethod
-    def quote_table_identifiers(sql: str, available_tables: List[str]) -> str:
+    def quote_table_identifiers(
+        sql: str, available_tables: List[str], db_type: str = "sqlite"
+    ) -> str:
         """Quote table identifiers appearing after FROM/JOIN when needed."""
         if not sql or not available_tables:
             return sql
@@ -86,7 +69,7 @@ class SQLUtils:
             if not SQLUtils._needs_quoting(table):
                 continue
 
-            replacement = SQLUtils.quote_identifier(table)
+            replacement = SQLUtils.quote_identifier(table, db_type)
             table_pattern = re.escape(table)
 
             # FROM <table>
@@ -146,18 +129,6 @@ class SQLUtils:
 
             # Strip quotes from identifiers
             tables = [SQLUtils._strip_identifier_quotes(t) for t in tables]
-
-            # Filter out system schemas/databases
-            # These are metadata sources that should always be allowed
-            original_tables = tables.copy()
-            tables = [t for t in tables if t.lower() not in SQLUtils.SYSTEM_SCHEMAS]
-
-            # Log system schema filtering for diagnostics
-            filtered_out = set(original_tables) - set(tables)
-            if filtered_out:
-                logger.info(
-                    f"🔧 [utils.py] Filtered out system schemas: {filtered_out}"
-                )
 
             # Remove duplicates and return
             normalized = [t.lower() for t in tables]

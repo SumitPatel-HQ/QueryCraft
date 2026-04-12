@@ -88,7 +88,7 @@ jspm_packages/
 .claude
 .github/
 .planning/
-.doc/
+.FeaturePlans/
 *.txt
 # Ruff cache
 .ruff_cache/
@@ -109,3 +109,5 @@ test_utils_fix.py
 QueryCraft_Solution1_SQLite_Sandbox_(Copy-on-Chat).md
 QueryCraft_MySQL_Isolation_v2.md
 improve_explaintion_plan.md
+test.md
+.codingAgentLog/

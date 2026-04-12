@@ -408,6 +408,123 @@ def test_mysql_query_route_returns_query_items_for_compound_request(monkeypatch)
     assert result.coverage_report["missing_intents"] == []
 
 
+def test_mysql_query_route_marks_missing_relationship_intent_without_dropping_tables(
+    monkeypatch,
+):
+    _install_firebase_stubs()
+
+    from api.routers import queries
+    from api.schemas import QueryRequest
+
+    database = SimpleNamespace(
+        id=10,
+        name="analytics",
+        display_name="Analytics",
+        db_type="mysql",
+        file_path=None,
+        connection_string="mysql://reporter:supersecret@db.internal:3306/analytics?ssl=true",
+        schema_data=None,
+        last_queried=None,
+    )
+    fake_db = FakeDBSession(database)
+
+    @contextmanager
+    def fake_get_db():
+        yield fake_db
+
+    async def fake_fetch_schema(connection_string):
+        assert connection_string == database.connection_string
+        return {
+            "users": [{"column": "id", "type": "int", "nullable": False}],
+            "orders": [{"column": "user_id", "type": "int", "nullable": False}],
+        }
+
+    async def fake_execute_query(connection_string, sql, params=None):
+        assert connection_string == database.connection_string
+        if "information_schema.tables" in sql:
+            return [{"table_name": "users"}, {"table_name": "orders"}]
+        raise RuntimeError("foreign key metadata unavailable")
+
+    class FakeProcessor:
+        def __init__(self, schema_data, introspector=None, db_type=None):
+            self.schema_data = schema_data
+
+        def process_intent_plan(self, intent_plan):
+            assert intent_plan.is_compound is True
+            return {
+                "sql_query": "SELECT table_name FROM information_schema.tables",
+                "explanation": "List tables",
+                "generation_method": "multi_intent",
+                "confidence": 80,
+                "tables_used": [],
+                "tokens_used": 0,
+                "query_items": [
+                    {
+                        "intent_label": "table_inventory",
+                        "sql_query": "SELECT table_name FROM information_schema.tables",
+                        "explanation": "List tables",
+                        "tables_used": [],
+                        "status": "success",
+                        "error_message": None,
+                        "result_rows": [],
+                        "confidence": 80,
+                    },
+                    {
+                        "intent_label": "relationship_inventory",
+                        "sql_query": "SELECT table_name, column_name, referenced_table_name FROM information_schema.key_column_usage WHERE referenced_table_name IS NOT NULL",
+                        "explanation": "List relationships",
+                        "tables_used": [],
+                        "status": "success",
+                        "error_message": None,
+                        "result_rows": [],
+                        "confidence": 80,
+                    },
+                ],
+                "coverage_report": {
+                    "detected_intents": ["table_inventory", "relationship_inventory"],
+                    "satisfied_intents": ["table_inventory", "relationship_inventory"],
+                    "missing_intents": [],
+                    "retry_count": 0,
+                    "fallback_used": False,
+                },
+                "multi_query_mode": True,
+            }
+
+        def process_query(self, question):
+            raise AssertionError("single-intent path should not run")
+
+    monkeypatch.setattr(queries, "get_db", fake_get_db)
+    monkeypatch.setattr(queries, "set_current_user_context", lambda db, user_id: None)
+    monkeypatch.setattr(
+        queries,
+        "fetch_mysql_schema_from_connection_string",
+        fake_fetch_schema,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        queries,
+        "execute_mysql_query_from_connection_string",
+        fake_execute_query,
+        raising=False,
+    )
+    sys.modules["core.nl_to_sql"] = SimpleNamespace(NLToSQLProcessor=FakeProcessor)
+
+    result = asyncio.run(
+        queries.query_database(
+            10,
+            QueryRequest(question="Show tables and relationships"),
+            {"uid": "user-123"},
+        )
+    )
+
+    assert result.multi_query_mode is True
+    assert result.results == [{"table_name": "users"}, {"table_name": "orders"}]
+    assert result.query_items[0]["status"] == "success"
+    assert result.query_items[1]["status"] == "failed"
+    assert result.query_items[1]["error_message"] == "foreign key metadata unavailable"
+    assert result.coverage_report["missing_intents"] == ["relationship_inventory"]
+
+
 def test_empty_schema_allows_row_creation_guidance(monkeypatch):
     _install_firebase_stubs()
 

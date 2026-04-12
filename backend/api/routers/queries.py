@@ -321,54 +321,64 @@ async def query_database(
                 )
                 logger.info(f"SQL Query: {sql_query}")
 
-                if query_items:
+                if multi_query_mode and query_items:
+                    # Execute each query in the compound plan
                     first_success_item = None
+                    execution_items = []
+                    
                     for item in query_items:
                         item_sql = item.get("sql_query")
                         if not item_sql:
+                            item["status"] = "failed"
+                            item["error_message"] = "No SQL query generated for this intent"
+                            execution_items.append(item)
                             continue
+                            
                         try:
+                            logger.info(f"Executing intent: {item.get('intent_label')} - SQL: {item_sql}")
                             if database.db_type == "mysql":
-                                item_results = (
-                                    await execute_mysql_query_from_connection_string(
-                                        database.connection_string,
-                                        item_sql,
-                                    )
+                                item_results = await execute_mysql_query_from_connection_string(
+                                    database.connection_string,
+                                    item_sql,
                                 )
-                                item_columns = (
-                                    list(item_results[0].keys()) if item_results else []
-                                )
+                                item_columns = list(item_results[0].keys()) if item_results else []
                             else:
-                                item_results, item_columns = (
-                                    DatabaseConnectionManager.execute_query(
-                                        database.db_type,
-                                        database.file_path
-                                        or database.connection_string,
-                                        item_sql,
-                                    )
+                                item_results, item_columns = DatabaseConnectionManager.execute_query(
+                                    database.db_type,
+                                    database.file_path or database.connection_string,
+                                    item_sql,
                                 )
+                                
                             item["result_rows"] = item_results
                             item["columns"] = item_columns
                             item["status"] = "success"
+                            
                             if first_success_item is None:
                                 first_success_item = item
                         except Exception as item_error:
+                            logger.warning(f"Intent execution failed: {item_error}")
                             item["status"] = "failed"
                             item["error_message"] = str(item_error)
                             item["result_rows"] = []
                             item["columns"] = []
+                        
+                        execution_items.append(item)
 
-                    if first_success_item is None:
+                    if not first_success_item:
                         raise HTTPException(
-                            status_code=400, detail="All intent queries failed"
+                            status_code=400, 
+                            detail="All intent queries failed to execute. Check database connections and query syntax."
                         )
 
+                    # Update top-level response fields with the first successful intent's data
                     results = first_success_item.get("result_rows", [])
                     columns = first_success_item.get("columns", [])
                     sql_query = first_success_item.get("sql_query", sql_query)
-                    item_explanation = first_success_item.get("explanation", "")
-                    explanation = item_explanation if item_explanation else explanation
+                    explanation = first_success_item.get("explanation", explanation)
                     tables_used = first_success_item.get("tables_used", tables_used)
+                    query_items = execution_items # Use the updated items with results
+                    
+                    # Refresh coverage report based on actual execution results
                     coverage_report = validate_intent_coverage(
                         intent_plan, query_items
                     ).to_dict()
