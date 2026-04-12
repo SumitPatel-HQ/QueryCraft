@@ -27,18 +27,24 @@ export default function ChatSearch() {
         <p className="text-[12px] text-[#777777] mt-1">Search across your chat history</p>
       </header>
 
-      <div className="flex gap-2">
-        <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-md bg-[#111111] border border-[rgba(255,255,255,0.08)]">
-          <Search size={14} className="text-[#666666]" />
+      <div className="flex gap-3">
+        <div className="flex-1 relative group">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <Search size={16} className="text-[#666] group-focus-within:text-[#999] transition-colors" strokeWidth={1.5} />
+          </div>
           <input
+            type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Search for SQL, schema, or analysis..."
-            className="w-full bg-transparent outline-none text-sm text-[#f0f0f0] placeholder:text-[#666666]"
+            className="w-full bg-[#0a0a0a] border border-white/[0.06] text-[#eee] rounded-[12px] pl-10 pr-4 py-2.5 text-[14px] outline-none transition-all placeholder:text-[#555] focus:border-white/[0.12]"
           />
         </div>
-        <button onClick={runSearch} className="h-10 px-4 rounded-md bg-white text-black text-sm font-medium">
+        <button 
+          onClick={runSearch} 
+          className="h-[42px] px-6 rounded-[12px] bg-white text-black text-[14px] font-medium hover:bg-[#eee] transition-colors"
+        >
           Search
         </button>
       </div>

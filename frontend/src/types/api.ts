@@ -113,6 +113,11 @@ export interface DeleteDatabaseResponse {
   message: string;
 }
 
+export interface MySQLActionResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface SchemaDataResponse {
   schema: Record<string, unknown>;
   source: "cached" | "fresh";

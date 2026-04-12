@@ -98,6 +98,78 @@ async def list_databases(user: dict = Depends(get_current_user)):
         return [_serialize_database(db_obj) for db_obj in databases]
 
 
+@router.get("/mysql", response_model=List[DatabaseResponse])
+async def list_mysql_databases(user: dict = Depends(get_current_user)):
+    """Get all MySQL connections for the user (active + inactive)."""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} fetching MySQL connections")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        databases = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.user_id == user_id)
+            .filter(DatabaseModel.db_type == "mysql")
+            .order_by(DatabaseModel.last_accessed.desc())
+            .all()
+        )
+        return [_serialize_database(db_obj) for db_obj in databases]
+
+
+@router.patch("/mysql/{database_id}/deactivate")
+async def deactivate_mysql_database(
+    database_id: int, user: dict = Depends(get_current_user)
+):
+    """Deactivate a MySQL connection (hide everywhere except MySQL page)."""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} deactivating MySQL connection {database_id}")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .filter(DatabaseModel.db_type == "mysql")
+            .first()
+        )
+        if not database:
+            raise HTTPException(
+                status_code=404, detail="MySQL connection not found"
+            )
+
+        database.is_active = False
+        db.commit()
+        return {"success": True, "message": "Connection deactivated"}
+
+
+@router.patch("/mysql/{database_id}/reactivate")
+async def reactivate_mysql_database(
+    database_id: int, user: dict = Depends(get_current_user)
+):
+    """Reactivate a previously deactivated MySQL connection."""
+    user_id = user.get("uid")
+    logger.info(f"User {user_id} reactivating MySQL connection {database_id}")
+
+    with get_db() as db:
+        set_current_user_context(db, user_id)
+        database = (
+            db.query(DatabaseModel)
+            .filter(DatabaseModel.id == database_id)
+            .filter(DatabaseModel.user_id == user_id)
+            .filter(DatabaseModel.db_type == "mysql")
+            .first()
+        )
+        if not database:
+            raise HTTPException(
+                status_code=404, detail="MySQL connection not found"
+            )
+
+        database.is_active = True
+        db.commit()
+        return {"success": True, "message": "Connection reactivated"}
+
+
 @router.get("/{database_id}", response_model=DatabaseResponse)
 async def get_database(database_id: int, user: dict = Depends(get_current_user)):
     """Get specific database details"""

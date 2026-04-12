@@ -67,14 +67,16 @@ export default function DatabasesView({ databases: initialDatabases, error }: Da
 
         {/* Search */}
         {databases.length > 0 && (
-          <div className="relative">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#666666]" />
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search size={16} className="text-[#666] group-focus-within:text-[#999] transition-colors" strokeWidth={1.5} />
+            </div>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search databases..."
-              className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] pl-12 pr-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.2)]"
+              className="w-full bg-[#0a0a0a] border border-white/[0.06] text-[#eee] rounded-[12px] pl-10 pr-4 py-2.5 text-[14px] outline-none transition-all placeholder:text-[#555] focus:border-white/[0.12]"
             />
           </div>
         )}

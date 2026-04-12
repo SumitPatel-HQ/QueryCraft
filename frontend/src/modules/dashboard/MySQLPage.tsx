@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Plus, 
-  Server, 
-  Loader2, 
+import {
+  Plus,
+  Server,
+  Loader2,
   Search,
   MessageSquare,
-  Trash2
+  Trash2,
+  PowerOff,
+  Power,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import MySQLConnectionModal from "@/components/database/MySQLConnectionModal";
+import DeleteDatabaseModal from "@/components/database/DeleteDatabaseModal";
 import { useAuthContext } from "@/components/providers/auth-provider";
 import { useApi } from "@/hooks/use-api";
 import type { DatabaseResponse } from "@/types/api";
@@ -33,15 +36,31 @@ export default function MySQLPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<DatabaseResponse | null>(null);
+
+  // Pending deactivate/reactivate in-flight IDs
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+
   const liveConnections = useMemo(
     () => databases.filter((database) => database.db_type === "mysql"),
     [databases]
   );
 
+  const activeCount = useMemo(
+    () => liveConnections.filter((c) => c.is_active).length,
+    [liveConnections]
+  );
+
   const filteredConnections = useMemo(() => {
-    return liveConnections.filter((connection) => 
-      connection.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (connection.connection_info?.host || "").toLowerCase().includes(searchQuery.toLowerCase())
+    return liveConnections.filter(
+      (connection) =>
+        connection.display_name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        (connection.connection_info?.host || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
     );
   }, [liveConnections, searchQuery]);
 
@@ -54,24 +73,55 @@ export default function MySQLPage() {
     setError(null);
 
     try {
-      const result = await api.getDatabases();
+      const result = await api.getMySQLConnections();
       setDatabases(result);
     } catch {
-      setError(
-        "Could not load live connections."
-      );
+      setError("Could not load live connections.");
     } finally {
       setIsLoading(false);
     }
   }, [api, loading, user]);
 
-  const handleDelete = async (id: number) => {
+  const handleDeactivate = async (id: number) => {
+    setPendingIds((prev) => new Set(prev).add(id));
     try {
-      await api.deleteDatabase(id);
-      setDatabases((prev) => prev.filter((db) => db.id !== id));
-    } catch (err) {
-      alert("Failed to delete connection.");
+      await api.deactivateMySQLConnection(id);
+      setDatabases((prev) =>
+        prev.map((db) => (db.id === id ? { ...db, is_active: false } : db))
+      );
+    } catch {
+      setError("Failed to deactivate connection.");
+    } finally {
+      setPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
+  };
+
+  const handleReactivate = async (id: number) => {
+    setPendingIds((prev) => new Set(prev).add(id));
+    try {
+      await api.reactivateMySQLConnection(id);
+      setDatabases((prev) =>
+        prev.map((db) => (db.id === id ? { ...db, is_active: true } : db))
+      );
+    } catch {
+      setError("Failed to reactivate connection.");
+    } finally {
+      setPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await api.deleteDatabase(deleteTarget.id);
+    setDatabases((prev) => prev.filter((db) => db.id !== deleteTarget.id));
   };
 
   useEffect(() => {
@@ -84,10 +134,10 @@ export default function MySQLPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-[20px] font-semibold text-[#f0f0f0] tracking-tight leading-tight">
-            My SQL Connections
+            MySQL Connections
           </h1>
           <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#444444] mt-1">
-            {liveConnections.length} Total
+            {activeCount} Active · {liveConnections.length} Total
           </div>
         </div>
         <Button
@@ -102,20 +152,22 @@ export default function MySQLPage() {
       {/* Error State */}
       {error && (
         <div className="bg-red-900/20 border border-red-900/50 rounded-[10px] p-4 text-red-400 text-[14px]">
-          <strong>Error loading connections:</strong> {error}
+          <strong>Error:</strong> {error}
         </div>
       )}
 
       {/* Search */}
       {liveConnections.length > 0 && (
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#666666]" />
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <Search size={16} className="text-[#666] group-focus-within:text-[#999] transition-colors" strokeWidth={1.5} />
+          </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search connections..."
-            className="w-full bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] pl-12 pr-4 py-3 text-[14px] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none focus:border-[rgba(255,255,255,0.2)]"
+            className="w-full bg-[#0a0a0a] border border-white/[0.06] text-[#eee] rounded-[12px] pl-10 pr-4 py-2.5 text-[14px] outline-none transition-all placeholder:text-[#555] focus:border-white/[0.12]"
           />
         </div>
       )}
@@ -131,16 +183,16 @@ export default function MySQLPage() {
           <div className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] py-16 flex flex-col items-center justify-center text-center px-4">
             <Server size={48} strokeWidth={1.5} className="text-[#444444] mb-4" />
             <h3 className="text-[16px] font-semibold text-[#f0f0f0] mb-2">
-              {searchQuery ? "No connections found" : "No live connections yet"}
+              {searchQuery ? "No connections found" : "No MySQL connections yet"}
             </h3>
             <p className="text-[14px] text-[#888888] max-w-[36ch] mx-auto mb-6">
               {searchQuery
                 ? "Try adjusting your search query"
                 : "Connect your MySQL instance to query your live data with natural language."}
             </p>
-            
+
             {!searchQuery && (
-              <Button 
+              <Button
                 onClick={() => setModalOpen(true)}
                 className="bg-[#f0f0f0] text-[#0a0a0a] hover:bg-[#ffffff] transition-all"
               >
@@ -153,22 +205,43 @@ export default function MySQLPage() {
           <div className="grid grid-cols-1 gap-3">
             {filteredConnections.map((connection) => {
               const info = connection.connection_info;
+              const isActive = connection.is_active;
+              const isPending = pendingIds.has(connection.id);
+
               return (
                 <div
                   key={connection.id}
-                  className="bg-[#111111] border border-[rgba(255,255,255,0.08)] rounded-[10px] p-4 flex items-center gap-6 hover:border-[rgba(255,255,255,0.2)] transition-all cursor-pointer group"
-                  onClick={() => router.push(`/dashboard/databases/${connection.id}/overview?from=mysql`)}
+                  className={`bg-[#111111] border rounded-[10px] p-4 flex items-center gap-6 transition-all cursor-pointer group ${
+                    isActive
+                      ? "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)]"
+                      : "border-[rgba(255,255,255,0.04)] opacity-60 hover:opacity-80 hover:border-[rgba(255,255,255,0.12)]"
+                  }`}
+                  onClick={() => {
+                    if (isActive) {
+                      router.push(
+                        `/dashboard/databases/${connection.id}/overview?from=mysql`
+                      );
+                    }
+                  }}
                 >
-                  <div className="flex items-center gap-3 min-w-[120px]">
-                    <div className={`w-2 h-2 rounded-full ${connection.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-[#444444]'}`} />
-                    <span className="text-[12px] text-[#f0f0f0] font-medium uppercase tracking-wider">
-                      {connection.is_active ? 'Active' : 'Offline'}
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-3 min-w-[100px]">
+                    <div
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        isActive
+                          ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                          : "bg-[#444444]"
+                      }`}
+                    />
+                    <span className="text-[12px] text-[#f0f0f0] font-medium leading-none">
+                      {isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
-                  
+
+                  {/* Connection Info */}
                   <div className="flex-1 flex items-center min-w-0 gap-6">
                     <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-semibold text-[#f0f0f0] truncate">
+                      <div className="text-[14px] font-semibold text-[#f0f0f0] truncate group-hover:text-white transition-colors">
                         {connection.display_name}
                       </div>
                       <div className="text-[12px] text-[#666666] truncate mt-0.5 font-mono">
@@ -177,49 +250,92 @@ export default function MySQLPage() {
                     </div>
 
                     <div className="hidden md:flex flex-col min-w-[140px]">
-                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">Database</div>
-                      <div className="text-[13px] text-[#888888] truncate">{info?.database || "MYSQL"}</div>
+                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">
+                        Database
+                      </div>
+                      <div className="text-[13px] text-[#888888] truncate">
+                        {info?.database || "—"}
+                      </div>
                     </div>
 
                     <div className="hidden lg:flex flex-col min-w-[80px]">
-                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">Port</div>
-                      <div className="text-[13px] text-[#888888]">{info?.port || 3306}</div>
+                      <div className="text-[10px] text-[#444444] uppercase font-mono tracking-wider font-bold">
+                        Port
+                      </div>
+                      <div className="text-[13px] text-[#888888]">
+                        {info?.port || 3306}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-3 text-[11px] border border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a] text-[#888888] hover:text-[#f0f0f0]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          alert("Schema view coming soon");
-                        }}
+                  {/* Actions */}
+                  <div
+                    className="flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isActive ? (
+                      <>
+                        {/* Chat shortcut — only for active */}
+                        <Button
+                          variant="outline"
+                          className="h-8 px-2.5 border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a]"
+                          title="Open chat"
+                          onClick={() =>
+                            window.open(
+                              `/dashboard/chat?db=${connection.id}`,
+                              "_self"
+                            )
+                          }
+                        >
+                          <MessageSquare
+                            size={16}
+                            className="text-[#888888] group-hover:text-[#f0f0f0]"
+                          />
+                        </Button>
+
+                        {/* Deactivate */}
+                        <button
+                          onClick={() => handleDeactivate(connection.id)}
+                          disabled={isPending}
+                          className="flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[11px] font-medium text-[#888888] border border-[rgba(255,255,255,0.05)] hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Deactivate — hides from all views except this page"
+                        >
+                          {isPending ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <PowerOff size={12} />
+                          )}
+                          Deactivate
+                        </button>
+                      </>
+                    ) : (
+                      /* Reactivate */
+                      <button
+                        onClick={() => handleReactivate(connection.id)}
+                        disabled={isPending}
+                        className="flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[11px] font-medium text-[#888888] border border-[rgba(255,255,255,0.05)] hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Reactivate this connection"
                       >
-                        View Schema
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-8 px-2.5 border-[rgba(255,255,255,0.05)] hover:bg-[#1a1a1a]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`/dashboard/chat?db=${connection.id}`, '_self');
-                        }}
-                      >
-                        <MessageSquare size={13} className="text-[#888888] group-hover:text-[#f0f0f0]" />
-                      </Button>
-                    </div>
-                    
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(connection.id);
-                      }}
-                      className="p-1.5 hover:bg-red-500/10 rounded transition-colors group/trash"
-                      title="Delete connection"
+                        {isPending ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <Power size={12} />
+                        )}
+                        Reactivate
+                      </button>
+                    )}
+
+                    {/* Delete — always available */}
+                    <button
+                      onClick={() => setDeleteTarget(connection)}
+                      disabled={isPending}
+                      className="p-1.5 hover:bg-red-500/10 rounded transition-colors group/trash disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Delete connection permanently"
                     >
-                      <Trash2 size={14} className="text-[#444444] group-hover/trash:text-red-500" />
+                      <Trash2
+                        size={16}
+                        className="text-[#444444] group-hover/trash:text-red-500"
+                      />
                     </button>
                   </div>
                 </div>
@@ -229,12 +345,21 @@ export default function MySQLPage() {
         )}
       </div>
 
+      {/* New Connection Modal */}
       <MySQLConnectionModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSuccess={(database) => {
           setDatabases((current) => upsertDatabase(current, database));
         }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteDatabaseModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        databaseName={deleteTarget?.display_name ?? ""}
       />
     </div>
   );

@@ -150,13 +150,16 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
       </div>
 
       <div className="px-3 py-2">
-        <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-[#111111] border border-[rgba(255,255,255,0.08)]">
-          <Search size={14} className="text-[#666666]" />
+        <div className="relative group">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={14} className="text-[#666] group-focus-within:text-[#999] transition-colors" strokeWidth={1.5} />
+          </div>
           <input
+            type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search chats"
-            className="w-full bg-transparent outline-none text-sm text-[#f0f0f0] placeholder:text-[#666666]"
+            placeholder="Search chats..."
+            className="w-full bg-[#0d0d0d] border border-white/[0.06] text-[#eee] rounded-[10px] pl-9 pr-4 py-2 text-[13px] outline-none transition-all placeholder:text-[#555] focus:border-white/[0.12]"
           />
         </div>
       </div>
