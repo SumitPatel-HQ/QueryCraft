@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Clock, TrendingUp, Sparkles, Lightbulb } from "lucide-react";
+import { Clock, TrendingUp, Sparkles, Lightbulb } from "lucide-react";
 import type { QueryResponse } from "@/types/api";
 import SQLCodeBlock from "@/modules/dashboard/chat/SQLCodeBlock";
 
@@ -8,8 +8,12 @@ interface QueryResultsProps {
   result: QueryResponse;
 }
 
+const MAX_VISIBLE_ROWS = 500;
+
 export default function QueryResults({ result }: QueryResultsProps) {
   const columns = result.columns || Object.keys((result.results[0] as Record<string, unknown>) || {});
+  const displayRows = result.results.slice(0, MAX_VISIBLE_ROWS);
+  const isTruncated = result.results.length > MAX_VISIBLE_ROWS;
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,7 +97,7 @@ export default function QueryResults({ result }: QueryResultsProps) {
                 </tr>
               </thead>
               <tbody>
-                {result.results.map((row, i) => {
+                {displayRows.map((row, i) => {
                   const record = row as Record<string, unknown>;
                   return (
                     <tr
@@ -112,6 +116,17 @@ export default function QueryResults({ result }: QueryResultsProps) {
                     </tr>
                   );
                 })}
+                {isTruncated && (
+                  <tr>
+                    <td
+                      colSpan={columns.length}
+                      className="px-4 py-3 text-center text-[12px] text-[#888888] border-t border-[rgba(255,255,255,0.08)] bg-[#0d0d0d]"
+                    >
+                      Showing first {MAX_VISIBLE_ROWS} of {result.results.length} rows — use{" "}
+                      <code className="text-[#f0f0f0] font-mono">LIMIT</code> in your query to narrow results
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

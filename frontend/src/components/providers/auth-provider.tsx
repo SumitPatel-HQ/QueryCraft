@@ -5,7 +5,7 @@
  * Provides auth context with Firebase user state and token management
  */
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { auth, signInWithGoogle, signOutUser } from "@/lib/firebase";
 
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getToken = async (forceRefresh = true): Promise<string | null> => {
+  const getToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
     if (!auth) {
       console.warn("Auth token requested but Firebase Auth is not initialized.");
       return null;
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to get token:", error);
       return null;
     }
-  };
+  }, [user]);
 
   const value: AuthContextType = {
     user,

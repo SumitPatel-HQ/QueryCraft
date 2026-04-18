@@ -21,6 +21,7 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState<Array<{ message_id: number; session_id: number; session_title: string; snippet: string }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,21 +75,27 @@ export default function ChatHistorySidebar({ isOpen, onToggle }: ChatHistorySide
     return () => window.removeEventListener("chat-sessions-updated", handler);
   }, [reloadSessions, authLoading, isAuthenticated]);
 
+  // Debounce raw query by 300ms before issuing a network search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
 
     async function runSearch() {
-      if (!query.trim()) {
+      if (!debouncedQuery.trim()) {
         setResults([]);
         return;
       }
-      const data = await search(query.trim());
+      const data = await search(debouncedQuery.trim());
       setResults(data);
     }
     runSearch();
-  }, [query, search, authLoading, isAuthenticated]);
+  }, [debouncedQuery, search, authLoading, isAuthenticated]);
 
   const visibleSessions = useMemo(() => {
     if (!query.trim()) {

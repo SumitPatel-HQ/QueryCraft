@@ -80,7 +80,7 @@ export function useChat() {
       throw new Error("Missing authentication token");
     }
 
-    const token = await getToken(true);
+    const token = await getToken(false);
     if (!token) {
       throw new Error("Invalid authentication token");
     }

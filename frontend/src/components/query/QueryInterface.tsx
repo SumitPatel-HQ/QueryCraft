@@ -43,7 +43,10 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     setAvailableDatabases(databases);
   }, [databases]);
 
-  const [question, setQuestion] = useState("");
+  // Uncontrolled ref avoids re-rendering the whole component on every keystroke.
+  // Only `hasText` (a boolean) tracks empty/non-empty boundary for button state.
+  const questionRef = useRef<HTMLTextAreaElement | null>(null);
+  const [hasText, setHasText] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -109,9 +112,17 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       const current = readSessionResultMap();
       const sessionIdStr = String(sessionId);
 
+      // Trim results before serializing — avoids synchronous JSON.stringify
+      // of thousands of rows on the main thread (50–200ms blocking for large datasets).
+      // Full results already live in React state; this is only for session-switch restore.
+      const MAX_STORED_ROWS = 100;
+      const trimmedResponse: QueryResponse = response.results.length > MAX_STORED_ROWS
+        ? { ...response, results: response.results.slice(0, MAX_STORED_ROWS) }
+        : response;
+
       // If updating existing entry, remove it first to re-insert at end (LRU)
       delete current[sessionIdStr];
-      current[sessionIdStr] = response;
+      current[sessionIdStr] = trimmedResponse;
 
       // Enforce max entries limit (LRU eviction)
       const entries = Object.entries(current);
@@ -184,7 +195,12 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     }
 
     setSelectedDatabaseId(nextDb);
-    setQuestion("");
+    // Clear uncontrolled textarea imperatively on session switch
+    if (questionRef.current) {
+      questionRef.current.value = "";
+      questionRef.current.style.height = "auto";
+    }
+    setHasText(false);
     if (activeSessionId) {
       const resultMap = readSessionResultMap();
       setResult(resultMap[String(activeSessionId)] ?? null);
@@ -308,7 +324,10 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
       return;
     }
 
-    if (!question.trim()) {
+    // Read from ref — no state update on every keystroke
+    const questionText = questionRef.current?.value.trim() ?? "";
+
+    if (!questionText) {
       setError("Please enter a question");
       return;
     }
@@ -320,7 +339,7 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
     try {
       let targetSessionId = activeSessionId;
       if (!targetSessionId) {
-        const created = await createSession(question.trim().slice(0, 60));
+        const created = await createSession(questionText.slice(0, 60));
         targetSessionId = created.id;
         router.push(`/dashboard/chat?session=${created.id}&db=${selectedDatabaseId}`);
         window.dispatchEvent(new Event("chat-sessions-updated"));
@@ -330,11 +349,11 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
         throw new Error("Failed to resolve active chat session");
       }
 
-      const response = await api.queryDatabase(selectedDatabaseId, question.trim());
+      const response = await api.queryDatabase(selectedDatabaseId, questionText);
       setResult(response);
       saveSessionResult(targetSessionId, response);
 
-      const askedQuestion = question.trim();
+      const askedQuestion = questionText;
 
       const tempUserId = -Date.now();
       const optimisticTimestamp = new Date().toISOString();
@@ -490,8 +509,13 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
                 {uploadingFile ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} />}
               </Button>
               <textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
+                ref={questionRef}
+                onChange={(e) => {
+                  // Only update state when crossing the empty ↔ non-empty boundary.
+                  // This limits full re-renders to ~2 per message instead of once per character.
+                  const nowHasText = e.target.value.length > 0;
+                  if (nowHasText !== hasText) setHasText(nowHasText);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -503,17 +527,19 @@ export default function QueryInterface({ databases, preselectedDatabaseId }: Que
                 rows={1}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = `${target.scrollHeight}px`;
+                  requestAnimationFrame(() => {
+                    target.style.height = 'auto';
+                    target.style.height = `${target.scrollHeight}px`;
+                  });
                 }}
                 className="flex-1 bg-transparent border-0 px-1 py-2 text-[14px] leading-[1.35] text-[#f0f0f0] placeholder:text-[#666666] focus:outline-none disabled:opacity-50 resize-none overflow-hidden min-h-9 max-h-50"
               />
               <Button
                 type="submit"
-                disabled={loading || !selectedDatabaseId || !question.trim()}
+                disabled={loading || !selectedDatabaseId || !hasText}
                 className={cn(
                   "w-11 h-11 rounded-full p-0 self-center flex items-center justify-center transition-all duration-200 shrink-0",
-                  !loading && question.trim() && selectedDatabaseId
+                  !loading && hasText && selectedDatabaseId
                     ? "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5"
                     : "bg-[#222222] text-white/20 opacity-50"
                 )}

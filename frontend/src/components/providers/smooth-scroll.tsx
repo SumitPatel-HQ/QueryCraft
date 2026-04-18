@@ -32,7 +32,7 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     };
 
     const observer = new MutationObserver(checkModal);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: false });
 
     return () => observer.disconnect();
   }, []);

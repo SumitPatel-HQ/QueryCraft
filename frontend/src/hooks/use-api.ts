@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAuthContext } from "@/components/providers/auth-provider";
 import * as apiClient from "@/lib/api-client";
 import type {
@@ -30,9 +30,11 @@ export function useApi() {
   const loadingRef = useRef(loading);
   const userRef = useRef(user);
 
-  // Keep refs updated with latest values
-  loadingRef.current = loading;
-  userRef.current = user;
+  // Keep refs updated via useEffect — avoids side effects during render
+  useEffect(() => {
+    loadingRef.current = loading;
+    userRef.current = user;
+  }, [loading, user]);
 
   // Helper to get token for each request
   const getAuthToken = useCallback(async () => {
@@ -55,7 +57,8 @@ export function useApi() {
     }
 
     try {
-      const token = await getToken(true);
+      // Use cached token (Firebase auto-refreshes before expiry); forceRefresh only when needed
+      const token = await getToken(false);
 
       if (!token) {
         throw new Error("Invalid authentication token");
